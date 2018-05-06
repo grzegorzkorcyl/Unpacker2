@@ -23,7 +23,8 @@ private:
   int eventsToAnalyze;
   
   size_t reverseHex(size_t n);
-  
+
+  bool areBytesToBeInverted(std::string);
   bool invertBytes;
   bool fullSetup;
   
