@@ -27,6 +27,7 @@ add_definitions(${ROOT_DEFINITIONS})
 find_package(Boost 1.50.0 REQUIRED
              unit_test_framework
             )
+include_directories(${Boost_INCLUDE_DIRS})
 add_definitions(${Boost_DEFINITIONS})
 
 file(GLOB HEADERS *.h)
