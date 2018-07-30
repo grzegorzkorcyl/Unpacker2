@@ -51,6 +51,8 @@ public:
   int GetTrailCoarseTime(int channel, int mult) { return trailCoarseTimes[channel][mult]; }
   int GetTrailEpoch(int channel, int mult) { return trailEpochs[channel][mult]; }
 
+  int GetOffset() { return offset; }
+
   UInt_t GetErrorBits() { return errorBits; }
   
   void Clear();

@@ -19,6 +19,18 @@ void TDCChannel::AddHit(double lead, double trail) {
   hitsNum++;
 }
 
+void TDCChannel::AddLead(double lead) {
+  leadTimes.push_back(lead);
+  
+  hitsNum++;
+}
+
+void TDCChannel::AddTrail(double trail) {
+  trailTimes.push_back(trail);
+  
+  hitsNum++;
+}
+
 void TDCChannel::Clear(Option_t *){
 
   hitsNum = 0;

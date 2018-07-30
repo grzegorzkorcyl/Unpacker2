@@ -10,6 +10,33 @@
 
 using namespace std;
 
+string UIntToString(UInt_t t) {
+  string s = "0000";
+  stringstream sstream;
+  sstream<<hex<<t;
+  
+  s = s.replace(4 - sstream.str().length(), sstream.str().length(), sstream.str());
+  
+  return s;  
+}
+
+UInt_t ReverseHex(UInt_t n) {
+  UInt_t a, b, c, d, e;
+  a = n & 0x000000ff;
+  b = n & 0x0000ff00;
+  c = n & 0x00ff0000;
+  d = n & 0xff000000;
+  
+  a <<= 24;
+  b <<= 8;
+  c >>= 8;
+  d >>=24 ;
+  
+  e = a|b|c|d;
+  
+  return e;
+}
+
 Unpacker2::Unpacker2(){
   Init();
 }
@@ -170,141 +197,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
 }
 
 void Unpacker2::DistributeEvents(string f) {
-  ifstream* file = new ifstream(f.c_str());
 
-  if (file->is_open()) {
-
-    // skip the file header
-    file->ignore(32);
-
-    int analyzedEvents = 0;
-
-    Event* event = 0;
-
-    // open a new file
-    string newFileName = f + ".raw.root";
-    TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
-    TTree* newTree = new TTree("T", "Tree");
-    Int_t split = 2;
-    Int_t bsize = 64000;
-    newTree->Branch("event", "Event", &event, bsize, split);
-
-    cerr<<"Starting event loop"<<endl;
-
-    event = new Event();
-
-    size_t eventSize = 0;
-
-    // iterate through all the events in the file
-    while(true) {
-
-      if(debugMode == true)
-        cerr<<"Unpacker2.cc: Position in file at "<<file->tellg();
-
-      // read out the header of the event into hdr structure
-      pHdr = (UInt_t*) &hdr;
-      file->read((char *) (pHdr), getHdrSize());
-
-      eventSize = (size_t) getFullSize();
-
-      if(debugMode == true)
-        cerr<<" current event size "<<eventSize<<endl<<"Unpacker2.cc: Starting new event analysis, going over subevents"<<endl;
-
-
-      if (eventSize == 32)
-        continue;
-
-      while(true) {
-        subPHdr = (UInt_t*) &subHdr;
-        file->read((char *) (subPHdr), getSubHdrSize());
-
-        // read out the entire data of the event
-        UInt_t* pData = new UInt_t[getDataSize()];
-        file->read((char*) (pData), getDataSize());
-
-        if(debugMode == true) {
-          cerr<<"Unpacker2.cc: Subevent data size: "<<getDataSize()<<" starting with ";
-          printf("%08X\n", (*pData));
-          cerr<<"Unpacker2.cc: Subevent details: "<<((SubEventHdr*)subPHdr)->decoding<<" "<<((SubEventHdr*)subPHdr)->hubAddress<<" "<<((SubEventHdr*)subPHdr)->trgNr<<endl;
-        }
-
-        // call the unpacking module
-        UnpackingModule* u = GetUnpacker(getHubAddress());
-        if (u != NULL && (*pData) != 0) {
-          if(debugMode == true)
-            cerr<<"Unpacker2.cc: Processing event "<<analyzedEvents<<" on "<<getHubAddress()<<endl;
-          GetUnpacker(getHubAddress())->SetEntireEventSize(getDataSize());
-          GetUnpacker(getHubAddress())->ProcessEvent(pData, event);
-
-          // gather decoded hits and fill them into event
-
-          GetUnpacker(getHubAddress())->GetTDCHits();
-//	  GetUnpacker(getHubAddress())->GetADCHits();
-	
-	}
-	else if((*pData) == 0) {
-	  cerr<<"WARNING: First data word empty, skipping event nr "<<analyzedEvents<<endl;
-	}
-	else if(u == NULL) {
-	  cerr<<"ERROR: Unpacker not found for address: "<<getHubAddress()<<endl;
-	  exit(1);
-	}
-
-	if(debugMode == true)
-	  cerr<<"Unpacker2.cc: Ignoring "<<(getPaddedSize() - getDataSize())<<" bytes and reducing eventSize by "<<getDataSize(); 
-	
-	delete[] pData;
-	
-	// remove the padding bytes
-	file->ignore(getPaddedSize() - getDataSize());
-	
-	eventSize -= getDataSize();
-	
-	if(debugMode == true)
-	  cerr<<" leaving eventSize of "<<eventSize<<endl;
-	
-	if(eventSize <= 48 && fullSetup == false) { break; }
-	
-	eventSize -= getPaddedSize() - getDataSize();
-	
-	if((eventSize <= 64) && fullSetup == true) { break; }
-
-	if((eventSize <= 176) && fullSetup == true) { break; }
-
-      }
-
-      newTree->Fill();
-
-      if(analyzedEvents % 10000 == 0) {
-        cerr<<analyzedEvents<<endl;
-      }
-      analyzedEvents++;
-
-      event->Clear();
-
-      if(debugMode == true) {
-        cerr<<"Unpacker2.cc: Ignoring padding of the event "<<(align8(eventSize) - eventSize)<<endl;
-        cerr<<"Unpacker2.cc: File pointer at "<<file->tellg()<<" of "<<fileSize<<" bytes"<<endl;
-      }
-
-      if (fullSetup == false) {
-        file->ignore(align8(eventSize) - eventSize);
-      }
-      // check the end of loop conditions (end of file)
-      if((fileSize - ((int)file->tellg())) < 500) { break; }
-      if((file->eof() == true) || ((int)file->tellg() == fileSize)) { break; }
-      if(analyzedEvents == eventsToAnalyze) { break; }
-    }
-
-    newFile->Write();
-
-    delete newTree;
-  }
-  else { cerr<<"ERROR:failed to open data file"<<endl; }
-
-  file->close();
-
-  //*** END OF READING BINARY DATA
 }
 
 
@@ -363,29 +256,174 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
         // read out the entire data of the event
         UInt_t* pData = new UInt_t[getDataSize()];
+	UInt_t* data = pData;
         file->read((char*) (pData), getDataSize());
 
         if(debugMode == true) {
-          cerr<<"Unpacker2.cc: Subevent data size: "<<getDataSize()<<" starting with ";
-          printf("%08X\n", (*pData));
+          cerr<<"Unpacker2.cc: Subevent data size: "<<getDataSize()<<endl;
           cerr<<"Unpacker2.cc: Subevent details: "<<((SubEventHdr*)subPHdr)->decoding<<" "<<((SubEventHdr*)subPHdr)->hubAddress<<" "<<((SubEventHdr*)subPHdr)->trgNr<<endl;
         }
 
-        // call the unpacking module
+
+	UInt_t data_i = 0;
+	size_t dataSize = getDataSize();
+	UInt_t tdcNumber = 0;
+	size_t internalSize = 0;
+	size_t is = 0;
+
+	int header;
+	int channel;
+	int coarse;
+	int fine;
+	int epoch;
+	bool isRising;
+	double fullTime;
+
+	double refTime;
+	bool gotRef;
+
+	bool firstHitOnCh;
+	TDCChannel* new_ch;
+
+	int channelOffset;
+	bool useCorrections;
+
+	// call the unpacking module
         UnpackingModule* u = GetUnpacker(getHubAddress());
-        if (u != NULL && (*pData) != 0) {
-          if(debugMode == true)
-            cerr<<"Unpacker2.cc: Processing event "<<analyzedEvents<<" on "<<getHubAddress()<<endl;
-          GetUnpacker(getHubAddress())->SetEntireEventSize(getDataSize());
-          GetUnpacker(getHubAddress())->ProcessEvent(pData, event);
+        if (u != NULL && (*data) != 0) {
 
-          // gather decoded hits and fill them into event
+		if(debugMode == true) {
+			cerr<<"Unpacker2.cc: Processing event "<<analyzedEvents<<" on "<<getHubAddress()<<endl;
+			cerr<<"Unpacker_TRB3.cc: Receiving "<<dataSize<<" words to analyze"<<endl;
+		}
 
-          GetUnpacker(getHubAddress())->GetTDCHits();
-//	  GetUnpacker(getHubAddress())->GetADCHits();
-	
+		while(dataSize > 0) {
+
+			data_i = ReverseHex((*data));
+			tdcNumber = data_i & 0xffff;
+			internalSize = data_i >> 16;     
+
+			UnpackingModule* uu = u->GetUnpacker(UIntToString(tdcNumber));
+			if (uu != NULL) {
+				//cerr<<"Unpacker_TRB3.cc: Calling Lattice_TDC for module "<<UIntToString(tdcNumber)<<" passing "<<internalSize<<" bytes"<<endl;
+
+				gotRef = false;
+				firstHitOnCh = true;
+				channelOffset = uu->GetOffset();
+
+				is = internalSize + 1;
+				while(is > 0) {
+					data_i = ReverseHex((*data));
+
+					header = (data_i >> 29);
+
+					switch (header) {
+
+						case 3: // epoch ctr
+							epoch = data_i & 0xfffffff;
+							break;
+
+
+						case 4:// time data
+							if (channel != ((data_i >> 22) & 0x7f) ) {
+								firstHitOnCh = true;
+							}
+
+							channel = (data_i >> 22) & 0x7f;
+							coarse = (data_i & 0x7ff);
+							fine = ((data_i >> 12) & 0x3ff);
+							isRising = ((data_i >> 11) & 0x1);
+
+							//if (useCorrections == true) {
+							//	fine = (corrections[channel]->GetBinContent(fine + 1)
+							//}
+							//else {
+								fine = fine * 10;
+							//}
+
+							if (fine != 0x3ff) {
+								fullTime = (double) ( ((epoch << 11) * 5.0) );
+								fullTime += (((coarse * 5000.) - fine) / 1000.);
+
+								if (channel == 0) {
+									//cerr<<"REF HIT: "<<channel<<" "<<fullTime<<endl;
+									refTime = fullTime;
+									gotRef = true;
+								}
+								else {
+									if (gotRef == true) {
+
+										if (firstHitOnCh == true) {
+											new_ch = eventIII->AddTDCChannel(channel + channelOffset);
+										}
+
+										//cerr<<"HIT: "<<channel<<" "<<fullTime<<" "<<(fullTime - refTime)<<endl;
+										fullTime = fullTime - refTime;
+
+										if (isRising == false) {
+											fullTime -= calibHist->GetBinContent(channel + channelOffset + 1);
+											new_ch->AddTrail(fullTime);
+										}
+										else {
+											new_ch->AddLead(fullTime);
+										}
+										
+
+										firstHitOnCh = false;
+									}
+								}
+							}
+
+							/*if (((data_i >> 11) & 0x1) == 1) { // rising edge
+
+								if (fine != 0x3ff) {
+									if (useCorrections == true)
+										leadFineTimes[channel][leadMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
+									else		
+										leadFineTimes[channel][leadMult[channel]] = fine * 10.0;
+
+									leadCoarseTimes[channel][leadMult[channel]] = coarse;
+									leadEpochs[channel][leadMult[channel]] = actualEpoch;
+									leadMult[channel]++;
+								}
+							}
+							else { // falling edge
+
+								if (fine != 0x3ff) {
+									if (useCorrections == true)
+										trailFineTimes[channel][trailMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
+									else		
+										trailFineTimes[channel][trailMult[channel]] = fine * 10.0;
+									trailCoarseTimes[channel][trailMult[channel]] = coarse;
+									trailEpochs[channel][trailMult[channel]] = actualEpoch;
+									trailMult[channel]++;
+								}
+							}*/
+						break;
+
+						default:
+							break;
+
+					}
+
+
+					data++;
+					is--;
+				}
+			}
+			else {
+				if(debugMode == true)
+					cerr<<"Unpacker_TRB3.cc: No Unpacker found for module "<<UIntToString(tdcNumber)<<" skipping "<<internalSize<<" bytes"<<endl;
+
+				data += internalSize + 1;
+			}
+
+			dataSize -= (internalSize + 1) * 4;
+		}
+
+
 	}
-	else if((*pData) == 0) {
+	else if((*data) == 0) {
 	  cerr<<"WARNING: First data word empty, skipping event nr "<<analyzedEvents<<endl;
 	}
 	else if(u == NULL) {
@@ -414,8 +452,9 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
 	if((eventSize <= 176) && fullSetup == true) { break; }
 
-      }
+      } // end of major loop
 
+/*
       // perform the actions from former "calculate_times" separate step
       if ( !calculateTimes(event, eventII) ){
         continue;
@@ -425,7 +464,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       if( !calculateHits(eventII, eventIII) ){
         continue;
       }
-
+*/
       newTree->Fill();
 
       if(analyzedEvents % 10000 == 0) {

@@ -28,6 +28,9 @@ public:
   
   void AddHit(double lead, double trail);
 
+  void AddLead(double lead);
+  void AddTrail(double trail);
+
   double GetLeadTime(unsigned int mult) {
     return leadTimes[mult];
   }

@@ -85,6 +85,7 @@ public:
   virtual int GetTrailEpoch(int /*channel*/, int /*mult*/) { return -1; }
 
   virtual void SetReferenceChannel(int /*t*/) {}
+  virtual int GetOffset() { return -1; }
   virtual UInt_t GetErrorBits() { return -1; }
 
 
