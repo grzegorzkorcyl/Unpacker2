@@ -3,8 +3,6 @@
 #include <sstream>
 #include <map>
 #include "Unpacker2.h"
-//#include "Unpacker_TRB3.h"
-//#include "Unpacker_Lattice_TDC.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -18,6 +16,14 @@ string UIntToString(UInt_t t) {
   s = s.replace(4 - sstream.str().length(), sstream.str().length(), sstream.str());
   
   return s;  
+}
+
+UInt_t StringToUInt(std::string hex_string){
+  UInt_t hex_number; 
+  std::stringstream ss;
+  ss << std::hex << hex_string;
+  ss >> hex_number;
+  return hex_number;
 }
 
 UInt_t ReverseHex(UInt_t n) {
@@ -39,19 +45,6 @@ UInt_t ReverseHex(UInt_t n) {
 
 Unpacker2::Unpacker2(){
   Init();
-}
-
-Unpacker2::Unpacker2(const char* hldFile, const char* configFile, int numberOfEvents) {
-
-  Init();
-
-  eventsToAnalyze = numberOfEvents;
-
-  //*** PARSING CONFIG FILE
-  ParseConfigFile(string(hldFile), string(configFile));
-
-  //*** READING BINARY DATA AND DISTRIBUTING IT TO APPROPRIATE UNPACKING MODULES
-  DistributeEvents(string(hldFile));
 }
 
 void Unpacker2::Init(){
@@ -139,6 +132,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
   boost::property_tree::ptree readoutTree = tree.get_child("READOUT");
   string type;
   string address_s;
+  UInt_t address;
   string hubAddress;
   string correctionFile;
   int channels = 0;
@@ -160,52 +154,26 @@ void Unpacker2::ParseConfigFile(string f, string s) {
 
       if (type == "TRB3_S") {
 
-	//        m = new Unpacker_TRB3(type, address, hubAddress, channels, offset, resolution, measurementType, invertBytes, debugMode);
-	//        m->SetReferenceChannel(referenceChannel);
-
         // create additional unpackers for internal modules
         boost::property_tree::ptree modulesTree = (readoutEntry.second).get_child("MODULES");
         for (const auto& module : modulesTree) {
           type = (module.second).get<string>("TYPE");
           address_s = (module.second).get<string>("TRBNET_ADDRESS");
-	  UInt_t address; 
-	  std::stringstream ss;
-	  ss << std::hex << address_s;
-	  ss >> address;
- 
+	  address = StringToUInt(address_s);
 	  channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
           resolution = (module.second).get<int>("RESOLUTION");
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
-          // UnpackingModule* submodule = 0;
-          // if (type == "LATTICE_TDC") {
-          //   submodule = new Unpacker_Lattice_TDC(type, address, hubAddress, channels, offset, resolution,
-          //                                        measurementType, invertBytes, debugMode, correctionFile);
-          // } else {
-          //   submodule = new UnpackingModule(type, address, hubAddress, channels, offset, resolution,
-          //                                   measurementType, invertBytes, debugMode);
-          // }
-          // m -> AddUnpacker(address, submodule);
-	  std::cout << " offset = " << offset <<  " for address = " << address << std::endl;
 	  tdc_offsets[address] = offset;
         }
-      } else { // default type
-        // m = new UnpackingModule(type, address, hubAddress, channels, offset, resolution, measurementType, invertBytes, debugMode);
-        // cerr << "  -- Creating UnpackingModule for unassigned type" << endl;
+      } else {  
+	cerr << "Incorrect configuration in the xml file!" << endl;
+	cerr << "The DATA_SOURCE entry is missing!" << endl;
       }
-
-      // add the module to the list
-      //      AddUnpacker(hubAddress, m);
-
     }
   }
 }
-
-void Unpacker2::DistributeEvents(string f) {
-
-}
-
 
 void Unpacker2::DistributeEventsSingleStep(string filename) {
   ifstream* file = new ifstream(filename.c_str());
@@ -239,7 +207,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       if(debugMode == true)
         cerr<<"Unpacker2.cc: Position in file at "<<file->tellg();
 
-x      // read out the header of the event into hdr structure
+      // read out the header of the event into hdr structure
       pHdr = (UInt_t*) &hdr;
       file->read((char *) (pHdr), getHdrSize());
 

@@ -44,7 +44,6 @@ private:
 public:
 
   Unpacker2();
-  Unpacker2(const char* hldFile, const char* configFile, int numberOfEvents);
   ~Unpacker2() {}
 
   void Init();
@@ -54,7 +53,6 @@ public:
   TH1F * loadCalibHisto(const char* calibFile);
   
   void ParseConfigFile(std::string f, std::string s);
-  void DistributeEvents(std::string f);
   void DistributeEventsSingleStep(std::string file);
   
   //  void AddUnpacker(std::string s, UnpackingModule* u) { unpackers[s] = u; }
