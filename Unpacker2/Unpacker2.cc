@@ -3,8 +3,8 @@
 #include <sstream>
 #include <map>
 #include "Unpacker2.h"
-#include "Unpacker_TRB3.h"
-#include "Unpacker_Lattice_TDC.h"
+//#include "Unpacker_TRB3.h"
+//#include "Unpacker_Lattice_TDC.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -138,7 +138,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
   // get the first data source entry in the config file
   boost::property_tree::ptree readoutTree = tree.get_child("READOUT");
   string type;
-  string address;
+  string address_s;
   string hubAddress;
   string correctionFile;
   int channels = 0;
@@ -146,51 +146,57 @@ void Unpacker2::ParseConfigFile(string f, string s) {
   int resolution = 0;
   int referenceChannel = 0;
   string measurementType("");
-  UnpackingModule* m;
+  //  UnpackingModule* m;
 
   // iterate through entries and create appropriate unpackers
   for (const auto& readoutEntry : readoutTree) {
     // read out values from xml entry
     if ((readoutEntry.first) == "DATA_SOURCE") {
       type = (readoutEntry.second).get<string>("TYPE");
-      address = (readoutEntry.second).get<string>("TRBNET_ADDRESS");
+      address_s = (readoutEntry.second).get<string>("TRBNET_ADDRESS");
       hubAddress = (readoutEntry.second).get<string>("HUB_ADDRESS");
       referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
       correctionFile = (readoutEntry.second).get<string>("CORRECTION_FILE");
 
-
       if (type == "TRB3_S") {
 
-        m = new Unpacker_TRB3(type, address, hubAddress, channels, offset, resolution, measurementType, invertBytes, debugMode);
-        m->SetReferenceChannel(referenceChannel);
+	//        m = new Unpacker_TRB3(type, address, hubAddress, channels, offset, resolution, measurementType, invertBytes, debugMode);
+	//        m->SetReferenceChannel(referenceChannel);
 
         // create additional unpackers for internal modules
         boost::property_tree::ptree modulesTree = (readoutEntry.second).get_child("MODULES");
         for (const auto& module : modulesTree) {
           type = (module.second).get<string>("TYPE");
-          address = (module.second).get<string>("TRBNET_ADDRESS");
-          channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
+          address_s = (module.second).get<string>("TRBNET_ADDRESS");
+	  UInt_t address; 
+	  std::stringstream ss;
+	  ss << std::hex << address_s;
+	  ss >> address;
+ 
+	  channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
           resolution = (module.second).get<int>("RESOLUTION");
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
-          UnpackingModule* submodule = 0;
-          if (type == "LATTICE_TDC") {
-            submodule = new Unpacker_Lattice_TDC(type, address, hubAddress, channels, offset, resolution,
-                                                 measurementType, invertBytes, debugMode, correctionFile);
-          } else {
-            submodule = new UnpackingModule(type, address, hubAddress, channels, offset, resolution,
-                                            measurementType, invertBytes, debugMode);
-          }
-          m -> AddUnpacker(address, submodule);
+          // UnpackingModule* submodule = 0;
+          // if (type == "LATTICE_TDC") {
+          //   submodule = new Unpacker_Lattice_TDC(type, address, hubAddress, channels, offset, resolution,
+          //                                        measurementType, invertBytes, debugMode, correctionFile);
+          // } else {
+          //   submodule = new UnpackingModule(type, address, hubAddress, channels, offset, resolution,
+          //                                   measurementType, invertBytes, debugMode);
+          // }
+          // m -> AddUnpacker(address, submodule);
+	  std::cout << " offset = " << offset <<  " for address = " << address << std::endl;
+	  tdc_offsets[address] = offset;
         }
       } else { // default type
-        m = new UnpackingModule(type, address, hubAddress, channels, offset, resolution, measurementType, invertBytes, debugMode);
-        cerr << "  -- Creating UnpackingModule for unassigned type" << endl;
+        // m = new UnpackingModule(type, address, hubAddress, channels, offset, resolution, measurementType, invertBytes, debugMode);
+        // cerr << "  -- Creating UnpackingModule for unassigned type" << endl;
       }
 
       // add the module to the list
-      AddUnpacker(hubAddress, m);
+      //      AddUnpacker(hubAddress, m);
 
     }
   }
@@ -211,8 +217,6 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
     int analyzedEvents = 0;
 
-    Event* event = 0;
-    Event* eventII = 0;
     EventIII * eventIII = 0;
 
     // open a new file
@@ -225,8 +229,6 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
     cerr<<"Starting event loop"<<endl;
 
-    event = new Event();
-    eventII = new Event();
     eventIII = new EventIII();
 
     size_t eventSize = 0;
@@ -237,7 +239,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       if(debugMode == true)
         cerr<<"Unpacker2.cc: Position in file at "<<file->tellg();
 
-      // read out the header of the event into hdr structure
+x      // read out the header of the event into hdr structure
       pHdr = (UInt_t*) &hdr;
       file->read((char *) (pHdr), getHdrSize());
 
@@ -289,147 +291,150 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 	bool useCorrections;
 
 	// call the unpacking module
-        UnpackingModule* u = GetUnpacker(getHubAddress());
-        if (u != NULL && (*data) != 0) {
+	//        UnpackingModule* u = GetUnpacker(getHubAddress());
+        // if (u != NULL && (*data) != 0) {
 
-		if(debugMode == true) {
-			cerr<<"Unpacker2.cc: Processing event "<<analyzedEvents<<" on "<<getHubAddress()<<endl;
-			cerr<<"Unpacker_TRB3.cc: Receiving "<<dataSize<<" words to analyze"<<endl;
-		}
+	  if(debugMode == true) {
+	    cerr<<"Unpacker2.cc: Processing event "<<analyzedEvents<<" on "<<getHubAddress()<<endl;
+	    cerr<<"Unpacker_TRB3.cc: Receiving "<<dataSize<<" words to analyze"<<endl;
+	  }
 
-		while(dataSize > 0) {
+	  while(dataSize > 0) {
 
-			data_i = ReverseHex((*data));
-			tdcNumber = data_i & 0xffff;
-			internalSize = data_i >> 16;     
+	    data_i = ReverseHex((*data));
+	    tdcNumber = data_i & 0xffff;
+	    internalSize = data_i >> 16;     
 
-			UnpackingModule* uu = u->GetUnpacker(UIntToString(tdcNumber));
-			if (uu != NULL) {
-				//cerr<<"Unpacker_TRB3.cc: Calling Lattice_TDC for module "<<UIntToString(tdcNumber)<<" passing "<<internalSize<<" bytes"<<endl;
+	    //			UnpackingModule* uu = u->GetUnpacker(UIntToString(tdcNumber));
+	    //	    if (uu != NULL) {
+	    //cerr<<"Unpacker_TRB3.cc: Calling Lattice_TDC for module "<<UIntToString(tdcNumber)<<" passing "<<internalSize<<" bytes"<<endl;
 
-				gotRef = false;
-				firstHitOnCh = true;
-				channelOffset = uu->GetOffset();
+	    gotRef = false;
+	    firstHitOnCh = true;
+	    //channelOffset = uu->GetOffset();
+	    cout << "TDC num: " << std::hex << tdcNumber << endl;
+	    if(tdc_offsets.count(tdcNumber) > 0){
+	      channelOffset = tdc_offsets.at(tdcNumber);
+				
+	      is = internalSize + 1;
+	      while(is > 0) {
+		data_i = ReverseHex((*data));
 
-				is = internalSize + 1;
-				while(is > 0) {
-					data_i = ReverseHex((*data));
+		header = (data_i >> 29);
 
-					header = (data_i >> 29);
+		switch (header) {
 
-					switch (header) {
-
-						case 3: // epoch ctr
-							epoch = data_i & 0xfffffff;
-							break;
-
-
-						case 4:// time data
-							if (channel != ((data_i >> 22) & 0x7f) ) {
-								firstHitOnCh = true;
-							}
-
-							channel = (data_i >> 22) & 0x7f;
-							coarse = (data_i & 0x7ff);
-							fine = ((data_i >> 12) & 0x3ff);
-							isRising = ((data_i >> 11) & 0x1);
-
-							//if (useCorrections == true) {
-							//	fine = (corrections[channel]->GetBinContent(fine + 1)
-							//}
-							//else {
-								fine = fine * 10;
-							//}
-
-							if (fine != 0x3ff) {
-								fullTime = (double) ( ((epoch << 11) * 5.0) );
-								fullTime += (((coarse * 5000.) - fine) / 1000.);
-
-								if (channel == 0) {
-									//cerr<<"REF HIT: "<<channel<<" "<<fullTime<<endl;
-									refTime = fullTime;
-									gotRef = true;
-								}
-								else {
-									if (gotRef == true) {
-
-										if (firstHitOnCh == true) {
-											new_ch = eventIII->AddTDCChannel(channel + channelOffset);
-										}
-
-										//cerr<<"HIT: "<<channel<<" "<<fullTime<<" "<<(fullTime - refTime)<<endl;
-										fullTime = fullTime - refTime;
-
-										if (isRising == false) {
-											fullTime -= calibHist->GetBinContent(channel + channelOffset + 1);
-											new_ch->AddTrail(fullTime);
-										}
-										else {
-											new_ch->AddLead(fullTime);
-										}
-										
-
-										firstHitOnCh = false;
-									}
-								}
-							}
-
-							/*if (((data_i >> 11) & 0x1) == 1) { // rising edge
-
-								if (fine != 0x3ff) {
-									if (useCorrections == true)
-										leadFineTimes[channel][leadMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
-									else		
-										leadFineTimes[channel][leadMult[channel]] = fine * 10.0;
-
-									leadCoarseTimes[channel][leadMult[channel]] = coarse;
-									leadEpochs[channel][leadMult[channel]] = actualEpoch;
-									leadMult[channel]++;
-								}
-							}
-							else { // falling edge
-
-								if (fine != 0x3ff) {
-									if (useCorrections == true)
-										trailFineTimes[channel][trailMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
-									else		
-										trailFineTimes[channel][trailMult[channel]] = fine * 10.0;
-									trailCoarseTimes[channel][trailMult[channel]] = coarse;
-									trailEpochs[channel][trailMult[channel]] = actualEpoch;
-									trailMult[channel]++;
-								}
-							}*/
-						break;
-
-						default:
-							break;
-
-					}
+		case 3: // epoch ctr
+		  epoch = data_i & 0xfffffff;
+		  break;
 
 
-					data++;
-					is--;
-				}
+		case 4:// time data
+		  if (channel != ((data_i >> 22) & 0x7f) ) {
+		    firstHitOnCh = true;
+		  }
+
+		  channel = (data_i >> 22) & 0x7f;
+		  coarse = (data_i & 0x7ff);
+		  fine = ((data_i >> 12) & 0x3ff);
+		  isRising = ((data_i >> 11) & 0x1);
+
+		  //if (useCorrections == true) {
+		  //	fine = (corrections[channel]->GetBinContent(fine + 1)
+		  //}
+		  //else {
+		  fine = fine * 10;
+		  //}
+
+		  if (fine != 0x3ff) {
+		    fullTime = (double) ( ((epoch << 11) * 5.0) );
+		    fullTime += (((coarse * 5000.) - fine) / 1000.);
+
+		    if (channel == 0) {
+		      //cerr<<"REF HIT: "<<channel<<" "<<fullTime<<endl;
+		      refTime = fullTime;
+		      gotRef = true;
+		    }
+		    else {
+		      if (gotRef == true) {
+			
+			if (firstHitOnCh == true) {
+			  new_ch = eventIII->AddTDCChannel(channel + channelOffset);
+			}
+
+			//cerr<<"HIT: "<<channel<<" "<<fullTime<<" "<<(fullTime - refTime)<<endl;
+			fullTime = fullTime - refTime;
+
+			if (isRising == false) {
+			  fullTime -= calibHist->GetBinContent(channel + channelOffset + 1);
+			  new_ch->AddTrail(fullTime);
 			}
 			else {
-				if(debugMode == true)
-					cerr<<"Unpacker_TRB3.cc: No Unpacker found for module "<<UIntToString(tdcNumber)<<" skipping "<<internalSize<<" bytes"<<endl;
-
-				data += internalSize + 1;
+			  new_ch->AddLead(fullTime);
 			}
+										
 
-			dataSize -= (internalSize + 1) * 4;
+			firstHitOnCh = false;
+		      }
+		    }
+		  }
+
+		  /*if (((data_i >> 11) & 0x1) == 1) { // rising edge
+		    
+		    if (fine != 0x3ff) {
+		    if (useCorrections == true)
+		    leadFineTimes[channel][leadMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
+		    else		
+		    leadFineTimes[channel][leadMult[channel]] = fine * 10.0;
+
+		    leadCoarseTimes[channel][leadMult[channel]] = coarse;
+		    leadEpochs[channel][leadMult[channel]] = actualEpoch;
+		    leadMult[channel]++;
+		    }
+		    }
+		    else { // falling edge
+
+		  if (fine != 0x3ff) {
+		  if (useCorrections == true)
+		  trailFineTimes[channel][trailMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
+		  else		
+		  trailFineTimes[channel][trailMult[channel]] = fine * 10.0;
+		  trailCoarseTimes[channel][trailMult[channel]] = coarse;
+		  trailEpochs[channel][trailMult[channel]] = actualEpoch;
+		  trailMult[channel]++;
+		  }
+		  }*/
+		  break;
+
+		default:
+		  break;
+		  
 		}
 
 
-	}
-	else if((*data) == 0) {
+		data++;
+		is--;
+	      }
+	     }
+	    else {
+	      if(debugMode == true)
+		cerr<<"Unpacker_TRB3.cc: No Unpacker found for module "<< tdcNumber <<" skipping "<<internalSize<<" bytes"<<endl;
+
+	      data += internalSize + 1;
+	    }
+
+	    dataSize -= (internalSize + 1) * 4;
+	  }
+
+
+	  //	}
+	if((*data) == 0) {
 	  cerr<<"WARNING: First data word empty, skipping event nr "<<analyzedEvents<<endl;
 	}
-	else if(u == NULL) {
-	  cerr<<"ERROR: Unpacker not found for address: "<<getHubAddress()<<endl;
-	  exit(1);
-	}
+	// else if(u == NULL) {
+	//   cerr<<"ERROR: Unpacker not found for address: "<<getHubAddress()<<endl;
+	//   exit(1);
+	// }
 
 	if(debugMode == true)
 	  cerr<<"Unpacker2.cc: Ignoring "<<(getPaddedSize() - getDataSize())<<" bytes and reducing eventSize by "<<getDataSize(); 
@@ -462,8 +467,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
       analyzedEvents++;
 
-      event->Clear();
-      eventII->Clear();
+
       eventIII->Clear();
 
       if(debugMode == true) {
@@ -505,7 +509,7 @@ TH1F * Unpacker2::loadCalibHisto(const char * calibFile){
     }
     cerr<<"Zero offsets and calib loaded"<<endl;
   }
-    // load the stretcher offsets calibration
+  // load the stretcher offsets calibration
   else {
     TFile* file = new TFile();
     ifstream my_file(calibFileName.c_str());
