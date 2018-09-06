@@ -34,13 +34,8 @@ file(GLOB HEADERS *.h)
 file(GLOB SOURCES *.cc)
 
 set(DICTIONARY_REQUIRED
-  Event.h
-  Hit.h
   EventIII.h
   TDCChannel.h
-  TDCHit.h
-  TDCHitExtended.h
-  TDCHitIII.h
   )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
