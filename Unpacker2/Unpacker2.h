@@ -7,7 +7,6 @@
 #include <TObjectTable.h>
 #include <TH1F.h>
 #include <string>
-//#include "UnpackingModule.h"
 #include "EventIII.h"
 #include <map>
 
@@ -17,10 +16,11 @@ class Unpacker2 : public TObject {
   
 private:
   
-  //  std::map<std::string, UnpackingModule*> unpackers;
   std::map<UInt_t, UInt_t> tdc_offsets;
   
   int eventsToAnalyze;
+  
+  bool useTDCcorrection;
   
   size_t reverseHex(size_t n);
 
@@ -39,7 +39,9 @@ private:
   int refTimeCoarse[REF_CHANNELS_NUMBER];
   int refTimeFine[REF_CHANNELS_NUMBER];
   int refChannelOffset;
-  TH1F * calibHist;
+  TH1F * TOTcalibHist;
+  int highest_channel_number;
+  TH1F ** TDCcorrections;
   
 public:
 
@@ -48,9 +50,10 @@ public:
 
   void Init();
   void UnpackSingleStep(const char* hldFile, const char* configFile, int numberOfEvents,
-			int refChannelOffset, const char* calibFile);
+			int refChannelOffset, const char* TOTcalibFile, const char* TDCcalibFile);
     
   TH1F * loadCalibHisto(const char* calibFile);
+  bool loadTDCcalibFile(const char* calibFile);
   
   void ParseConfigFile(std::string f, std::string s);
   void DistributeEventsSingleStep(std::string file);

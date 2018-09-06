@@ -58,17 +58,23 @@ void Unpacker2::Init(){
 }
 
 void Unpacker2::UnpackSingleStep(const char* hldFile, const char* configFile, int numberOfEvents,
-                                 int refChannelOffset, const char* calibFile){
+                                 int refChannelOffset, const char* TOTcalibFile,
+				 const char* TDCcalibFile){
 
   eventsToAnalyze = numberOfEvents;
 
   this->refChannelOffset = refChannelOffset;
 
-  calibHist = loadCalibHisto(calibFile);
-
   //*** PARSING CONFIG FILE
   ParseConfigFile(string(hldFile), string(configFile));
+  
+  TOTcalibHist = loadCalibHisto(TOTcalibFile);
 
+  useTDCcorrection = false;
+  if( strlen(TDCcalibFile) != 0 ){
+    useTDCcorrection = loadTDCcalibFile(TDCcalibFile);
+  }
+  
   //*** READING BINARY DATA AND DISTRIBUTING IT TO APPROPRIATE UNPACKING MODULES
   DistributeEventsSingleStep(string(hldFile));
 
@@ -140,7 +146,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
   int resolution = 0;
   int referenceChannel = 0;
   string measurementType("");
-  //  UnpackingModule* m;
+  highest_channel_number = 0;
 
   // iterate through entries and create appropriate unpackers
   for (const auto& readoutEntry : readoutTree) {
@@ -152,6 +158,12 @@ void Unpacker2::ParseConfigFile(string f, string s) {
       referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
       correctionFile = (readoutEntry.second).get<string>("CORRECTION_FILE");
 
+      if (correctionFile.compare("raw") != 0){
+	cerr << "WARNING: The TDC correction file path was set in the XML config file of the Unpacker!" << endl;
+	cerr << "This file path should be defined in the user parameters JSON file instead." << endl;
+	cerr << "The setting from the XML file fill be ignored!" << endl;
+      }
+      
       if (type == "TRB3_S") {
 
         // create additional unpackers for internal modules
@@ -166,6 +178,9 @@ void Unpacker2::ParseConfigFile(string f, string s) {
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
 	  tdc_offsets[address] = offset;
+	  if( offset + channels > highest_channel_number ){
+	    highest_channel_number = offset + channels;
+	  }
         }
       } else {  
 	cerr << "Incorrect configuration in the xml file!" << endl;
@@ -260,7 +275,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
 	// call the unpacking module
 	//        UnpackingModule* u = GetUnpacker(getHubAddress());
-        // if (u != NULL && (*data) != 0) {
+	if ((*data) != 0) {
 
 	  if(debugMode == true) {
 	    cerr<<"Unpacker2.cc: Processing event "<<analyzedEvents<<" on "<<getHubAddress()<<endl;
@@ -307,12 +322,16 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 		  fine = ((data_i >> 12) & 0x3ff);
 		  isRising = ((data_i >> 11) & 0x1);
 
-		  //if (useCorrections == true) {
-		  //	fine = (corrections[channel]->GetBinContent(fine + 1)
-		  //}
-		  //else {
-		  fine = fine * 10;
-		  //}
+		  cerr << "RIGHT BEFORE TDC CORR FOR " << channel + channelOffset  << endl;
+		  if (useTDCcorrection == true &&
+		      TDCcorrections[channel + channelOffset] != nullptr) {
+		    fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
+		    cerr << "APPLIED TDC CORR FOR "<< channel + channelOffset << endl;
+		  }
+		  else {
+		    fine = fine * 10;
+		    cerr << "SKIPPED TDC CORR FOR " << channel + channelOffset <<endl;
+		  }
 
 		  if (fine != 0x3ff) {
 		    fullTime = (double) ( ((epoch << 11) * 5.0) );
@@ -334,7 +353,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 			fullTime = fullTime - refTime;
 
 			if (isRising == false) {
-			  fullTime -= calibHist->GetBinContent(channel + channelOffset + 1);
+			  fullTime -= TOTcalibHist->GetBinContent(channel + channelOffset + 1);
 			  new_ch->AddTrail(fullTime);
 			}
 			else {
@@ -395,8 +414,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 	  }
 
 
-	  //	}
-	if((*data) == 0) {
+	} else if((*data) == 0) {
 	  cerr<<"WARNING: First data word empty, skipping event nr "<<analyzedEvents<<endl;
 	}
 	// else if(u == NULL) {
@@ -497,6 +515,47 @@ TH1F * Unpacker2::loadCalibHisto(const char * calibFile){
 
   return returnHisto;
 
+}
+
+bool Unpacker2::loadTDCcalibFile(const char* calibFile){
+
+  TFile * f = new TFile(calibFile, "READ");
+
+  if(f){
+
+    TDCcorrections = new TH1F*[highest_channel_number];
+    for(int i=0;i<highest_channel_number; ++i){
+
+      TH1F * tmp = dynamic_cast<TH1F*>(f->Get(Form("correction%d", i)));
+
+      if(tmp){
+	TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
+      }
+
+    }
+    
+    if(debugMode){
+      cerr << "Loaded TDC nonlinearity corrections." << endl;
+    }
+
+    f->Close();
+    delete f;
+  }else{
+    if(debugMode){
+      cerr << "The TDC calibration file " << calibFile << "could not be properl opened." << endl;
+      cerr << "TDC nonlinearity correction will not be used!" << endl;
+    }
+    return false;
+  }
+
+  for(int i=0;i<highest_channel_number; ++i){
+    std::cout << i;
+    if(TDCcorrections[i]!=NULL){
+      cout << TDCcorrections[i]->GetName() <<endl;;
+    }
+  }
+  
+  return true;
 }
 
 size_t Unpacker2::getDataSize() {
