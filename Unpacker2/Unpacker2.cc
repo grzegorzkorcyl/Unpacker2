@@ -288,14 +288,9 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 	    tdcNumber = data_i & 0xffff;
 	    internalSize = data_i >> 16;     
 
-	    //			UnpackingModule* uu = u->GetUnpacker(UIntToString(tdcNumber));
-	    //	    if (uu != NULL) {
-	    //cerr<<"Unpacker_TRB3.cc: Calling Lattice_TDC for module "<<UIntToString(tdcNumber)<<" passing "<<internalSize<<" bytes"<<endl;
-
 	    gotRef = false;
 	    firstHitOnCh = true;
-	    //channelOffset = uu->GetOffset();
-	    cout << "TDC num: " << std::hex << tdcNumber << endl;
+
 	    if(tdc_offsets.count(tdcNumber) > 0){
 	      channelOffset = tdc_offsets.at(tdcNumber);
 				
@@ -322,15 +317,12 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 		  fine = ((data_i >> 12) & 0x3ff);
 		  isRising = ((data_i >> 11) & 0x1);
 
-		  cerr << "RIGHT BEFORE TDC CORR FOR " << channel + channelOffset  << endl;
 		  if (useTDCcorrection == true &&
-		      TDCcorrections[channel + channelOffset] != nullptr) {
+		      TDCcorrections[channel + channelOffset]) {
 		    fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
-		    cerr << "APPLIED TDC CORR FOR "<< channel + channelOffset << endl;
 		  }
 		  else {
 		    fine = fine * 10;
-		    cerr << "SKIPPED TDC CORR FOR " << channel + channelOffset <<endl;
 		  }
 
 		  if (fine != 0x3ff) {
@@ -338,7 +330,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 		    fullTime += (((coarse * 5000.) - fine) / 1000.);
 
 		    if (channel == 0) {
-		      //cerr<<"REF HIT: "<<channel<<" "<<fullTime<<endl;
+
 		      refTime = fullTime;
 		      gotRef = true;
 		    }
@@ -366,31 +358,6 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 		    }
 		  }
 
-		  /*if (((data_i >> 11) & 0x1) == 1) { // rising edge
-		    
-		    if (fine != 0x3ff) {
-		    if (useCorrections == true)
-		    leadFineTimes[channel][leadMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
-		    else		
-		    leadFineTimes[channel][leadMult[channel]] = fine * 10.0;
-
-		    leadCoarseTimes[channel][leadMult[channel]] = coarse;
-		    leadEpochs[channel][leadMult[channel]] = actualEpoch;
-		    leadMult[channel]++;
-		    }
-		    }
-		    else { // falling edge
-
-		  if (fine != 0x3ff) {
-		  if (useCorrections == true)
-		  trailFineTimes[channel][trailMult[channel]] = (corrections[channel]->GetBinContent(fine + 1));
-		  else		
-		  trailFineTimes[channel][trailMult[channel]] = fine * 10.0;
-		  trailCoarseTimes[channel][trailMult[channel]] = coarse;
-		  trailEpochs[channel][trailMult[channel]] = actualEpoch;
-		  trailMult[channel]++;
-		  }
-		  }*/
 		  break;
 
 		default:
@@ -417,10 +384,6 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 	} else if((*data) == 0) {
 	  cerr<<"WARNING: First data word empty, skipping event nr "<<analyzedEvents<<endl;
 	}
-	// else if(u == NULL) {
-	//   cerr<<"ERROR: Unpacker not found for address: "<<getHubAddress()<<endl;
-	//   exit(1);
-	// }
 
 	if(debugMode == true)
 	  cerr<<"Unpacker2.cc: Ignoring "<<(getPaddedSize() - getDataSize())<<" bytes and reducing eventSize by "<<getDataSize(); 
@@ -503,12 +466,12 @@ TH1F * Unpacker2::loadCalibHisto(const char * calibFile){
     TDirectory* dir = gDirectory->GetDirectory("Rint:/");
     tmp = (TH1F*)file->Get("stretcher_offsets");
 
-    cerr<<"Calculated  calib loadedasdasd"<<endl;
-
     returnHisto = (TH1F*)(tmp->Clone("stretcher_offsets"));
     returnHisto->SetDirectory(dir);
 
-    cerr<<"Calculated  calib loaded"<<endl;
+    if(debugMode){
+      cerr<<"Calculated  calib loaded"<<endl;
+    }
 
     file->Close();
   }
@@ -520,8 +483,9 @@ TH1F * Unpacker2::loadCalibHisto(const char * calibFile){
 bool Unpacker2::loadTDCcalibFile(const char* calibFile){
 
   TFile * f = new TFile(calibFile, "READ");
+  TDirectory* dir = gDirectory->GetDirectory("Rint:/");
 
-  if(f){
+  if(f->IsOpen()){
 
     TDCcorrections = new TH1F*[highest_channel_number];
     for(int i=0;i<highest_channel_number; ++i){
@@ -530,6 +494,7 @@ bool Unpacker2::loadTDCcalibFile(const char* calibFile){
 
       if(tmp){
 	TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
+	TDCcorrections[i]->SetDirectory(dir);
       }
 
     }
@@ -538,13 +503,15 @@ bool Unpacker2::loadTDCcalibFile(const char* calibFile){
       cerr << "Loaded TDC nonlinearity corrections." << endl;
     }
 
-    f->Close();
-    delete f;
   }else{
     if(debugMode){
-      cerr << "The TDC calibration file " << calibFile << "could not be properl opened." << endl;
+      cerr << "The TDC calibration file " << calibFile << " could not be properly opened." << endl;
       cerr << "TDC nonlinearity correction will not be used!" << endl;
     }
+
+    f->Close();
+    delete f;
+
     return false;
   }
 
@@ -554,6 +521,9 @@ bool Unpacker2::loadTDCcalibFile(const char* calibFile){
       cout << TDCcorrections[i]->GetName() <<endl;;
     }
   }
+  
+  f->Close();
+  delete f;
   
   return true;
 }
@@ -578,9 +548,7 @@ std::string Unpacker2::getHubAddress() {
   else {
     sstream<<hex<<ReverseHex((UInt_t)((SubEventHdr*)subPHdr)->hubAddress);
   }
-  //cerr<<s<<" |"<<sstream<<"| |";
   s = s.replace(4 - sstream.str().length(), sstream.str().length(), sstream.str());
-  //cerr<<s<<"|"<<endl;
 
   return s;
 }
