@@ -6,6 +6,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#define MAX_ALLOWED_REPETITIONS 1
+
 using namespace std;
 
 string UIntToString(UInt_t t) {
@@ -264,6 +266,11 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 	bool isRising;
 	double fullTime;
 
+	int prev_fine = -1;
+	int prev_coarse = -1;
+	int prev_channel = -1;
+	int repetition_counter = 0;
+	
 	double refTime;
 	bool gotRef;
 
@@ -317,6 +324,33 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 		  fine = ((data_i >> 12) & 0x3ff);
 		  isRising = ((data_i >> 11) & 0x1);
 
+		  if(channel > 0){ // skip reference channels
+		    if( fine == prev_fine &&
+			coarse == prev_coarse &&
+			channel == prev_channel ){
+		      repetition_counter++;
+		    }else{
+		      if(repetition_counter > 0){
+			h_rep->Fill(repetition_counter);
+		      }
+		      if(repetition_counter > MAX_ALLOWED_REPETITIONS){
+			// reset the TDC time contents of the TDCChannel object
+			// but keep not the channel numner
+			int tmp_ch = new_ch->GetChannel();
+			new_ch->Clear("");
+			new_ch->SetChannel(tmp_ch);
+			cerr << "WARNING: corrupt data detected on channel "
+			     << tmp_ch
+			     << ". Skipping event data for this channel." << endl;
+		      }
+		      repetition_counter = 0;
+		    }
+		  }
+		  
+		  prev_channel = channel;
+		  prev_fine = fine;
+		  prev_coarse = coarse;
+		  
 		  if (useTDCcorrection == true &&
 		      TDCcorrections[channel + channelOffset]) {
 		    fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
