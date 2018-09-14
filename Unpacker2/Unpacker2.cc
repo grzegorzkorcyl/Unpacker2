@@ -214,6 +214,10 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
     Int_t bsize = 64000;
 
     TH1F * h_rep = new TH1F("h_rep", "data repetition", 1000, -0.5, 999.5);
+
+    // tmp
+    TH1F * h_es = new TH1F("h_es", "top event size", 32000, 0., 32000.);
+    TH1F * h_ss = new TH1F("h_ss", "sub event size", 32000, 0., 32000.);
     
     newTree->Branch("eventIII", "EventIII", &eventIII, bsize, split);
 
@@ -237,7 +241,6 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       
       if(debugMode == true)
         cerr<<" current event size "<<eventSize<<endl<<"Unpacker2.cc: Starting new event analysis, going over subevents"<<endl;
-
 
       if (eventSize == 32)
         continue;
