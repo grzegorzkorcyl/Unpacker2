@@ -2,9 +2,11 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include "TimeDateDecoder.h"
 #include "Unpacker2.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <TObjString.h>
 
 #define MAX_ALLOWED_REPETITIONS 1
 
@@ -465,9 +467,14 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
     }
 
     h_rep->Write();
-    
+    h_es->Write();
+    h_ss->Write();
+
     newFile->Write();
 
+    TObjString timestamp(TimeDateDecoder::formatTimeString(((EventHdr*)pHdr)->date,((EventHdr*)pHdr)->time).c_str());
+    timestamp.Write();
+    
     delete newTree;
   }
   else { cerr<<"ERROR:failed to open data file"<<endl; }
