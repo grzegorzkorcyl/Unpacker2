@@ -20,7 +20,7 @@ private:
   
   int eventsToAnalyze;
   
-  bool useTDCcorrection;
+  bool useTDCcorrection = false;
   
   size_t reverseHex(size_t n);
 
@@ -33,9 +33,11 @@ private:
   long int fileSize;
 
   int refChannelOffset;
-  TH1F * TOTcalibHist;
-  int highest_channel_number;
-  TH1F ** TDCcorrections;
+  TH1F * TOTcalibHist = nullptr;
+  int highest_channel_number = -1;
+  TH1F ** TDCcorrections = nullptr;
+
+  const static int kMaxAllowedRepetitions = 1;
   
 public:
 

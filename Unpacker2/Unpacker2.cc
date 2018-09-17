@@ -8,8 +8,6 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <TObjString.h>
 
-#define MAX_ALLOWED_REPETITIONS 1
-
 using namespace std;
 
 string UIntToString(UInt_t t) {
@@ -20,14 +18,6 @@ string UIntToString(UInt_t t) {
   s = s.replace(4 - sstream.str().length(), sstream.str().length(), sstream.str());
   
   return s;  
-}
-
-UInt_t StringToUInt(std::string hex_string){
-  UInt_t hex_number; 
-  std::stringstream ss;
-  ss << std::hex << hex_string;
-  ss >> hex_number;
-  return hex_number;
 }
 
 UInt_t ReverseHex(UInt_t n) {
@@ -175,7 +165,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
         for (const auto& module : modulesTree) {
           type = (module.second).get<string>("TYPE");
           address_s = (module.second).get<string>("TRBNET_ADDRESS");
-          address = StringToUInt(address_s);
+          address = std::stoul(address_s, 0 , 16);
           channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
           resolution = (module.second).get<int>("RESOLUTION");
@@ -342,7 +332,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
                       if(repetition_counter > 0){
                         h_rep->Fill(repetition_counter);
                       }
-                      if(repetition_counter > MAX_ALLOWED_REPETITIONS){
+                      if(repetition_counter > kMaxAllowedRepetitions){
                         // reset the TDC time contents of the TDCChannel object
                         // but keep not the channel numner
                         int tmp_ch = new_ch->GetChannel();
