@@ -32,12 +32,6 @@ private:
   
   long int fileSize;
 
-  // stuff for "calculate_times"
-  TClonesArray* pArray = 0;
-  TIter * iter;
-  int refTimeEpoch[REF_CHANNELS_NUMBER];
-  int refTimeCoarse[REF_CHANNELS_NUMBER];
-  int refTimeFine[REF_CHANNELS_NUMBER];
   int refChannelOffset;
   TH1F * TOTcalibHist;
   int highest_channel_number;
@@ -57,10 +51,7 @@ public:
   
   void ParseConfigFile(std::string f, std::string s);
   void DistributeEventsSingleStep(std::string file);
-  
-  //  void AddUnpacker(std::string s, UnpackingModule* u) { unpackers[s] = u; }
-  //  UnpackingModule* GetUnpacker(std::string s) { return unpackers[s]; }
-  
+    
   struct EventHdr {
     UInt_t fullSize;
     UInt_t decoding;
