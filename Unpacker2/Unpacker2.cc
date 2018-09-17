@@ -214,19 +214,14 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
     Int_t bsize = 64000;
 
     TH1F * h_rep = new TH1F("h_rep", "data repetition", 1000, -0.5, 999.5);
-
-    // tmp
-    TH1F * h_es = new TH1F("h_es", "top event size", 32000, 0., 32000.);
-    TH1F * h_ss = new TH1F("h_ss", "sub event size", 32000, 0., 32000.);
     
     newTree->Branch("eventIII", "EventIII", &eventIII, bsize, split);
-
-    cerr<<"Starting event loop"<<endl;
 
     eventIII = new EventIII();
 
     size_t eventSize = 0;
-
+    size_t initialEventSize = 0;
+    
     // iterate through all the events in the file
     while(true) {
 
@@ -245,6 +240,8 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       if (eventSize == 32)
         continue;
 
+      initialEventSize = eventSize;
+      
       while(true) {
         subPHdr = (UInt_t*) &subHdr;
         file->read((char *) (subPHdr), getSubHdrSize());
@@ -285,8 +282,9 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
         TDCChannel* new_ch;
 
         int channelOffset;
-        bool useCorrections;
 
+	size_t initialDataSize = dataSize;
+	
         if ((*data) != 0) {
 
           if(debugMode == true) {
@@ -296,6 +294,12 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
           while(dataSize > 0) {
 
+	    if( dataSize > initialDataSize ){
+	      cerr << "ERROR: Incorrect data size encountered, the input file is likely corrupted." << endl;
+	      cerr << "Stopping the subevent loop." <<endl;
+	      break;
+	    }
+	    	    
             data_i = ReverseHex((*data));
             tdcNumber = data_i & 0xffff;
             internalSize = data_i >> 16;     
@@ -344,7 +348,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
                         int tmp_ch = new_ch->GetChannel();
                         new_ch->Clear("");
                         new_ch->SetChannel(tmp_ch);
-                        cerr << "WARNING: corrupt data detected on channel "
+                        cerr << "WARNING: corrupted data detected on channel "
                              << tmp_ch
                              << ". Skipping event data for this channel." << endl;
                       }
@@ -434,7 +438,13 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
         
         if(debugMode == true)
           cerr<<" leaving eventSize of "<<eventSize<<endl;
-        
+
+	if( eventSize > initialEventSize ){
+	  cerr << "ERROR: Incorrect event size, the input file is likely corrupted." << endl;
+	  cerr << "Stopping event loop after " << analyzedEvents << " events read." << endl;
+	  break;
+	}
+	
         if(eventSize <= 48 && fullSetup == false) { break; }
         
         eventSize -= getPaddedSize() - getDataSize();
@@ -470,8 +480,6 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
     }
 
     h_rep->Write();
-    h_es->Write();
-    h_ss->Write();
 
     newFile->Write();
 
