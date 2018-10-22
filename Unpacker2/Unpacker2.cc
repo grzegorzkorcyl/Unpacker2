@@ -221,7 +221,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       // read out the header of the event into hdr structure
       pHdr = (UInt_t*) &hdr;
       file->read((char *) (pHdr), getHdrSize());
-      
+
       eventSize = (size_t) getFullSize();
       
       if(debugMode == true)
@@ -351,7 +351,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
                   prev_coarse = coarse;
                   
                   if (useTDCcorrection == true &&
-                      TDCcorrections[channel + channelOffset]) {
+                      TDCcorrections[channel + channelOffset] != nullptr) {
                     fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
                   }
                   else {
@@ -536,6 +536,8 @@ bool Unpacker2::loadTDCcalibFile(const char* calibFile){
       if(tmp){
         TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
         TDCcorrections[i]->SetDirectory(dir);
+      }else{
+        TDCcorrections[i] = nullptr;
       }
 
     }
