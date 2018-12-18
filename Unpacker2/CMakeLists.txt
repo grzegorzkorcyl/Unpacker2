@@ -39,7 +39,10 @@ set(DICTIONARY_REQUIRED
   )
 
 set(LINKDEF_NAME Unpacker2_LinkDef.h)
-set(DICTIONARY_NAME Unpacker2_Dictionaries)
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/Dictionaries)
+set(DICTIONARY_NAME
+        ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/Dictionaries/Unpacker2Dictionary)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 foreach(header ${DICTIONARY_REQUIRED})
