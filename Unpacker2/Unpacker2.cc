@@ -137,8 +137,8 @@ void Unpacker2::ParseConfigFile(string f, string s) {
   string correctionFile;
   int channels = 0;
   int offset = 0;
-  int resolution = 0;
-  int referenceChannel = 0;
+  //int resolution = 0;
+  //int referenceChannel = 0;
   string measurementType("");
   highest_channel_number = 0;
 
@@ -149,7 +149,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
       type = (readoutEntry.second).get<string>("TYPE");
       address_s = (readoutEntry.second).get<string>("TRBNET_ADDRESS");
       hubAddress = (readoutEntry.second).get<string>("HUB_ADDRESS");
-      referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
+      //referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
       correctionFile = (readoutEntry.second).get<string>("CORRECTION_FILE");
 
       if (correctionFile.compare("raw") != 0){
@@ -168,7 +168,7 @@ void Unpacker2::ParseConfigFile(string f, string s) {
           address = std::stoul(address_s, 0 , 16);
           channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
-          resolution = (module.second).get<int>("RESOLUTION");
+          //resolution = (module.second).get<int>("RESOLUTION");
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
           tdc_offsets[address] = offset;
@@ -314,7 +314,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
 
 
                 case 4:// time data
-                  if (channel != ((data_i >> 22) & 0x7f) ) {
+                  if (channel >= 0 && (unsigned(channel) != ((data_i >> 22) & 0x7f))) {
                     firstHitOnCh = true;
                   }
 
