@@ -1,10 +1,10 @@
 UNPACKER2:
 
 About:
-Tool to unpack the HADES-like .hld binary data into ROOT tree structure.
+Tool to unpack the .hld binary data into ROOT tree structure. This README is probably outdated, so be watchful
 
 Prerequisite:
-- tinyxml2 installed
+- BOOST at least 1.50 
 
 Installation:
 - Download Unpacker2 directory
