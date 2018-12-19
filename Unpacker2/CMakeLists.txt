@@ -38,11 +38,17 @@ set(DICTIONARY_REQUIRED
   TDCChannel.h
   )
 
+set(LINKDEF_NAME Unpacker2_LinkDef.h)
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/Dictionaries)
+set(DICTIONARY_NAME
+        ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/Dictionaries/Unpacker2_Dictionary)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-foreach(header ${DICTIONARY_REQUIRED})
-  ROOT_GENERATE_DICTIONARY(${header}_Dict ${header} OPTIONS -p)
-  list(APPEND SOURCES ${header}_Dict.cxx)
-endforeach()
+ROOT_GENERATE_DICTIONARY(${DICTIONARY_NAME} ${DICTIONARY_REQUIRED}
+  LINKDEF ${LINKDEF_NAME}
+  OPTIONS -p)
+list(APPEND SOURCES ${DICTIONARY_NAME}.cxx)
 
 add_library(Unpacker2 SHARED ${SOURCES} ${HEADERS})
 
