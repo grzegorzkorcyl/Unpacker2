@@ -14,9 +14,7 @@ protected:
   
   std::vector<double> leadTimes;
   std::vector<double> trailTimes;
-  int hitsNum;
-
-  
+    
 public:
 
   TDCChannel();
@@ -24,11 +22,17 @@ public:
   
   void SetChannel(Int_t channel) { this->channel = channel; }
   int GetChannel() { return channel; }
-  int GetHitsNum() { return hitsNum; }
+  int GetLeadHitsNum() { return leadTimes.size(); }
+  int GetTrailHitsNum() { return trailTimes.size(); }
   
-  void AddHit(double lead, double trail);
+  void AddLead(double lead);
+  void AddTrail(double trail);
 
   double GetLeadTime(unsigned int mult) {
+    if( mult >= leadTimes.size() ){
+      std::cout<<"asked for lead time out of range."<<std::endl;
+      return 0.;
+    }
     return leadTimes[mult];
   }
 
@@ -39,8 +43,6 @@ public:
     }
     return trailTimes[mult];
   }
-
-  int GetMult() { return hitsNum; }
 
   void Clear(Option_t * opt);
   

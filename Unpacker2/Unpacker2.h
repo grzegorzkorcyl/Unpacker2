@@ -7,8 +7,6 @@
 #include <TObjectTable.h>
 #include <TH1F.h>
 #include <string>
-#include "UnpackingModule.h"
-#include "Event.h"
 #include "EventIII.h"
 #include <map>
 
@@ -18,9 +16,11 @@ class Unpacker2 : public TObject {
   
 private:
   
-  std::map<std::string, UnpackingModule*> unpackers;
+  std::map<UInt_t, UInt_t> tdc_offsets;
   
   int eventsToAnalyze;
+  
+  bool useTDCcorrection = false;
   
   size_t reverseHex(size_t n);
 
@@ -32,38 +32,28 @@ private:
   
   long int fileSize;
 
-  // stuff for "calculate_times"
-  TClonesArray* pArray = 0;
-  TIter * iter;
-  TDCHit* pHit = 0;
-  int refTimeEpoch[REF_CHANNELS_NUMBER];
-  int refTimeCoarse[REF_CHANNELS_NUMBER];
-  int refTimeFine[REF_CHANNELS_NUMBER];
   int refChannelOffset;
-  TH1F * calibHist;
+  TH1F * TOTcalibHist = nullptr;
+  int highest_channel_number = -1;
+  TH1F ** TDCcorrections = nullptr;
+
+  const static int kMaxAllowedRepetitions = 1;
   
 public:
 
   Unpacker2();
-  Unpacker2(const char* hldFile, const char* configFile, int numberOfEvents);
   ~Unpacker2() {}
 
   void Init();
   void UnpackSingleStep(const char* hldFile, const char* configFile, int numberOfEvents,
-			int refChannelOffset, const char* calibFile);
-  
-  bool calculateTimes(Event * old_event, Event * new_event);
-  bool calculateHits(Event * evt_in, EventIII * evt_out);
-  
+			int refChannelOffset, const char* TOTcalibFile, const char* TDCcalibFile);
+    
   TH1F * loadCalibHisto(const char* calibFile);
+  bool loadTDCcalibFile(const char* calibFile);
   
   void ParseConfigFile(std::string f, std::string s);
-  void DistributeEvents(std::string f);
   void DistributeEventsSingleStep(std::string file);
-  
-  void AddUnpacker(std::string s, UnpackingModule* u) { unpackers[s] = u; }
-  UnpackingModule* GetUnpacker(std::string s) { return unpackers[s]; }
-  
+    
   struct EventHdr {
     UInt_t fullSize;
     UInt_t decoding;
