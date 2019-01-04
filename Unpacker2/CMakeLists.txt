@@ -6,7 +6,33 @@ if(NOT MSVC)
   add_definitions(-std=c++11 -Wall -Wunused-parameter)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+# first try to find ROOT 6 or ROOT 5 compiled with CMake
+# if present, such ROOT should be possible to find without explicit setting of any paths
+find_package(ROOT 5 QUIET)
+
+if(ROOT_FOUND)
+  message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
+else()
+  # try to locate ROOT using ROOTSYS and root-config in case ROOTSYS is not set
+  set(root_prefix $ENV{ROOTSYS})
+  if(root_prefix)
+    list(APPEND CMAKE_MODULE_PATH ${root_prefix}/etc/cmake/)
+  else()
+    execute_process(COMMAND root-config --etcdir OUTPUT_VARIABLE ROOT_ETCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    list(APPEND CMAKE_MODULE_PATH ${ROOT_ETCDIR}/cmake)
+  endif()
+  find_package(ROOT 5 QUIET)
+  if(ROOT_FOUND)
+    message(STATUS "ROOT (version ${ROOT_VERSION}) was found using FindROOT (legacy mode)")
+  else()
+    # as last resort, use the bundled FindROOT module
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+    find_package(ROOT 5 REQUIRED)
+    if(ROOT_FOUND)
+      message(WARNING "ROOT (version ${ROOT_VERSION}) was only found using fallback mode)")
+    endif()
+  endif()
+endif()
 
 # add possible ROOT cmake module locations to module path
 execute_process(COMMAND root-config --etcdir OUTPUT_VARIABLE ROOT_ETCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
