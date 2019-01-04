@@ -34,15 +34,6 @@ else()
   endif()
 endif()
 
-# add possible ROOT cmake module locations to module path
-execute_process(COMMAND root-config --etcdir OUTPUT_VARIABLE ROOT_ETCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-list(APPEND CMAKE_MODULE_PATH ${ROOT_ETCDIR}/cmake)
-list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
-list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS}/etc/cmake)
-
-# find ROOT
-find_package(ROOT 5 REQUIRED)
-
 if(ROOT_USE_FILE)
   include(${ROOT_USE_FILE})
 endif()
