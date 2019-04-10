@@ -42,54 +42,53 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
     )
 
-
-#Configure Boost
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.50 REQUIRED COMPONENTS unit_test_framework)
-
-if(NOT TARGET Boost::unit_test_framework)
-    add_library(Boost::unit_test_framework IMPORTED INTERFACE)
-    set_property(TARGET Boost::unit_test_framework PROPERTY
-        INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR})
-    set_property(TARGET Boost::unit_test_framework PROPERTY
-        INTERFACE_LINK_LIBRARIES ${Boost_LIBRARIES})
-endif()
-#End of configuration of Boost
-
 # Configure ROOT
 ## Based on https://cliutils.gitlab.io/modern-cmake/chapters/packages/ROOT.html
 find_package(ROOT CONFIG QUIET)
-
+message(Root: ${ROOT_USE_FILE})
 if(ROOT_FOUND)
   message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
 else()
-  # try to locate ROOT using ROOTSYS and root-config in case ROOTSYS is not set
-  set(root_prefix $ENV{ROOTSYS})
-  if(root_prefix)
-    list(APPEND CMAKE_MODULE_PATH ${root_prefix}/etc/cmake/)
-  else()
-    execute_process(COMMAND root-config --etcdir OUTPUT_VARIABLE ROOT_ETCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-    list(APPEND CMAKE_MODULE_PATH ${ROOT_ETCDIR}/cmake)
-  endif()
-  find_package(ROOT CONFIG QUIET)
+  # Try to find root 5
+  find_package(ROOT 5 QUIET)
+
   if(ROOT_FOUND)
-    message(STATUS "ROOT (version ${ROOT_VERSION}) was found using FindROOT (legacy mode)")
+    message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
   else()
-    # as last resort, use the bundled FindROOT module
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-    find_package(ROOT CONFIG QUIET)
+    # try to locate ROOT using ROOTSYS and root-config in case ROOTSYS is not set
+    set(root_prefix $ENV{ROOTSYS})
+    if(root_prefix)
+      list(APPEND CMAKE_MODULE_PATH ${root_prefix}/etc/cmake/)
+    else()
+      execute_process(COMMAND root-config --etcdir OUTPUT_VARIABLE ROOT_ETCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+      list(APPEND CMAKE_MODULE_PATH ${ROOT_ETCDIR}/cmake)
+    endif()
+    find_package(ROOT 5 QUIET)
     if(ROOT_FOUND)
-      message(WARNING "ROOT (version ${ROOT_VERSION}) was only found using fallback mode)")
+      message(STATUS "ROOT (version ${ROOT_VERSION}) was found using FindROOT (legacy mode)")
+    else()
+      # as last resort, use the bundled FindROOT module
+      list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+      find_package(ROOT 5 REQUIRED)
+      if(ROOT_FOUND)
+        message(WARNING "ROOT (version ${ROOT_VERSION}) was only found using fallback mode)")
+      endif()
     endif()
   endif()
+endif()
+
+if(NOT TARGET ROOT::Core)
+    add_library(ROOT::Core IMPORTED INTERFACE)
+    set_property(TARGET ROOT::Core PROPERTY
+        INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
+    set_property(TARGET ROOT::Core PROPERTY
+        INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
 endif()
 
 include("${ROOT_DIR}/modules/RootNewMacros.cmake")
 
 # fix missing include directories property in versions < ROOT 6.12
-set_property(TARGET ROOT::Core PROPERTY
+set_target_properties(ROOT::Core PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${ROOT_INCLUDE_DIRS}")
 
 
@@ -114,13 +113,10 @@ separate_arguments(ROOT_EXE_LINKER_FLAGS)
 set_property(TARGET ROOT::Flags_CXX APPEND PROPERTY
     INTERFACE_LINK_LIBRARIES ${ROOT_EXE_LINKER_FLAGS})
 
-file(GLOB HEADERS *.h)
-file(GLOB SOURCES *.cc)
-
 set(DICTIONARY_NAME G__Unpacker2)
 set(HEADERS_WITH_DICTIONARY_REQUIRED
-  EventIII.h
-  TDCChannel.h
+  include/EventIII.h
+  include/TDCChannel.h
   )
 
 set(LINKDEF_NAME Unpacker2_LinkDef.h)
@@ -129,15 +125,18 @@ include_directories(ROOT_BUG) # Fix bug in NewMacros Root file
 ROOT_GENERATE_DICTIONARY(${DICTIONARY_NAME} ${HEADERS_WITH_DICTIONARY_REQUIRED}
   LINKDEF ${LINKDEF_NAME}
   OPTIONS -p)
-list(APPEND SOURCES ${DICTIONARY_NAME}.cxx)
 ## End of configuration of ROOT
 
-add_library(Unpacker2 SHARED src/Unpacker2.cc)
+# Set all sources
+set(SOURCES src/Unpacker2.cc src/EventIII.cc src/TDCChannel.cc ${DICTIONARY_NAME}.cxx)
+
+add_library(Unpacker2 SHARED ${SOURCES})
+add_library(Unpacker2::Unpacker2 ALIAS Unpacker2)
 target_include_directories(Unpacker2
                            PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<INSTALL_INTERFACE:include>)
-target_link_libraries(Unpacker2 PUBLIC Boost::unit_test_framework ROOT::Core ROOT::Flags_CXX)
+target_link_libraries(Unpacker2 PUBLIC ROOT::Core ROOT::RIO ROOT::Hist ROOT::Thread ROOT::Tree ROOT::Physics ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 
 include(CheckIPOSupported) # only avaiable in 3.9+
@@ -168,26 +167,9 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2Config.cmake"
         )
 
 #unit tests
-set(TESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+option(PACKAGE_TESTS "Build the tests" ON)
+if(PACKAGE_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
-foreach(dir ${TESTS_SOURCE_DIR})
-  file(GLOB UNIT_TEST_SOURCES_TMP ${dir}/*Test.cpp)
-  list(APPEND UNIT_TEST_SOURCES ${UNIT_TEST_SOURCES_TMP})
-endforeach()
-
-set(TESTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/tests)
-file(MAKE_DIRECTORY ${TESTS_DIR})
-file(COPY scripts/run_tests.pl DESTINATION ${TESTS_DIR})
-file(COPY scripts/parseXML.py DESTINATION ${TESTS_DIR})
-foreach(test_source ${UNIT_TEST_SOURCES})
-  get_filename_component(test ${test_source} NAME_WE)
-  list(APPEND test_binaries ${test}.x)
-  add_executable(${test}.x EXCLUDE_FROM_ALL ${test_source})
-  set_target_properties(${test}.x PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTS_DIR} )
-  target_link_libraries(${test}.x
-          Unpacker2
-          ${Boost_LIBRARIES}
-          )
-endforeach()
-
-add_custom_target(unpacker_tests DEPENDS ${test_binaries} Unpacker2) 
