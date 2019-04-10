@@ -15,7 +15,7 @@ script:
     - cd Unpacker2
     - mkdir build
     - cd build
-    - source /usr/local/bin/thisroot.sh
+    - source /usr/local/root/bin/thisroot.sh
     - cmake ..
     - make unpacker_tests
     - cd tests
