@@ -16,7 +16,7 @@ script:
     - mkdir build
     - cd build
     - cmake ..
-    - make unpacker_tests
+    - make Unpacker2Test
     - cd tests
     - ./run_tests.pl -f xml
     - chmod a+x parseXML.py
