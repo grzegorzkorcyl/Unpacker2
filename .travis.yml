@@ -15,7 +15,6 @@ script:
     - cd Unpacker2
     - mkdir build
     - cd build
-    - source $ROOTSYS/bin/thisroot.sh
     - cmake ..
     - make unpacker_tests
     - cd tests
