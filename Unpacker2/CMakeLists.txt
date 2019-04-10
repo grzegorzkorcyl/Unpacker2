@@ -85,8 +85,9 @@ if(NOT TARGET ROOT::Core)
         INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
 endif()
 
-include("${ROOT_DIR}/modules/RootNewMacros.cmake")
-
+if (NOT ROOT_VERSION VERSION_LESS 6)
+  include("${ROOT_DIR}/modules/RootNewMacros.cmake")
+endif()
 # fix missing include directories property in versions < ROOT 6.12
 set_target_properties(ROOT::Core PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${ROOT_INCLUDE_DIRS}")
@@ -136,7 +137,7 @@ target_include_directories(Unpacker2
                            PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<INSTALL_INTERFACE:include>)
-target_link_libraries(Unpacker2 PUBLIC ROOT::Core ROOT::RIO ROOT::Hist ROOT::Thread ROOT::Tree ROOT::Physics ROOT::Flags_CXX)
+target_link_libraries(Unpacker2 PUBLIC ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 
 include(CheckIPOSupported) # only avaiable in 3.9+
