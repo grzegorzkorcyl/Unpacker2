@@ -45,7 +45,6 @@ write_basic_package_version_file(
 # Configure ROOT
 ## Based on https://cliutils.gitlab.io/modern-cmake/chapters/packages/ROOT.html
 find_package(ROOT CONFIG QUIET)
-message(Root: ${ROOT_USE_FILE})
 if(ROOT_FOUND)
   message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
 else()
@@ -82,6 +81,22 @@ if(NOT TARGET ROOT::Core)
     set_property(TARGET ROOT::Core PROPERTY
         INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
     set_property(TARGET ROOT::Core PROPERTY
+        INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
+endif()
+
+if(NOT TARGET ROOT::Hist)
+    add_library(ROOT::Hist IMPORTED INTERFACE)
+    set_property(TARGET ROOT::Hist PROPERTY
+        INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
+    set_property(TARGET ROOT::Hist PROPERTY
+        INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
+endif()
+
+if(NOT TARGET ROOT::Tree)
+    add_library(ROOT::Tree IMPORTED INTERFACE)
+    set_property(TARGET ROOT::Tree PROPERTY
+        INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
+    set_property(TARGET ROOT::Tree PROPERTY
         INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
 endif()
 
@@ -137,7 +152,7 @@ target_include_directories(Unpacker2
                            PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<INSTALL_INTERFACE:include>)
-target_link_libraries(Unpacker2 PUBLIC ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
+target_link_libraries(Unpacker2 PUBLIC ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 
 include(CheckIPOSupported) # only avaiable in 3.9+
