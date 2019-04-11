@@ -16,7 +16,7 @@ project(Unpacker2 VERSION 1.0.0
                   DESCRIPTION "Unpacker2 module"
                   LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11) # maybe not best solutio to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
+set(CMAKE_CXX_STANDARD 11) # maybe not best solution to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
@@ -44,65 +44,12 @@ write_basic_package_version_file(
 
 # Configure ROOT
 ## Based on https://cliutils.gitlab.io/modern-cmake/chapters/packages/ROOT.html
-find_package(ROOT CONFIG QUIET)
+find_package(ROOT CONFIG REQUIRED)
 if(ROOT_FOUND)
   message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
-else()
-  # Try to find root 5
-  find_package(ROOT 5 QUIET)
-
-  if(ROOT_FOUND)
-    message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
-  else()
-    # try to locate ROOT using ROOTSYS and root-config in case ROOTSYS is not set
-    set(root_prefix $ENV{ROOTSYS})
-    if(root_prefix)
-      list(APPEND CMAKE_MODULE_PATH ${root_prefix}/etc/cmake/)
-    else()
-      execute_process(COMMAND root-config --etcdir OUTPUT_VARIABLE ROOT_ETCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-      list(APPEND CMAKE_MODULE_PATH ${ROOT_ETCDIR}/cmake)
-    endif()
-    find_package(ROOT 5 QUIET)
-    if(ROOT_FOUND)
-      message(STATUS "ROOT (version ${ROOT_VERSION}) was found using FindROOT (legacy mode)")
-    else()
-      # as last resort, use the bundled FindROOT module
-      list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-      find_package(ROOT 5 REQUIRED)
-      if(ROOT_FOUND)
-        message(WARNING "ROOT (version ${ROOT_VERSION}) was only found using fallback mode)")
-      endif()
-    endif()
-  endif()
 endif()
 
-if(NOT TARGET ROOT::Core)
-    add_library(ROOT::Core IMPORTED INTERFACE)
-    set_property(TARGET ROOT::Core PROPERTY
-        INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
-    set_property(TARGET ROOT::Core PROPERTY
-        INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
-endif()
-
-if(NOT TARGET ROOT::Hist)
-    add_library(ROOT::Hist IMPORTED INTERFACE)
-    set_property(TARGET ROOT::Hist PROPERTY
-        INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
-    set_property(TARGET ROOT::Hist PROPERTY
-        INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
-endif()
-
-if(NOT TARGET ROOT::Tree)
-    add_library(ROOT::Tree IMPORTED INTERFACE)
-    set_property(TARGET ROOT::Tree PROPERTY
-        INTERFACE_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
-    set_property(TARGET ROOT::Tree PROPERTY
-        INTERFACE_LINK_LIBRARIES ${ROOT_LIBRARIES})
-endif()
-
-if (NOT ROOT_VERSION VERSION_LESS 6)
-  include("${ROOT_DIR}/modules/RootNewMacros.cmake")
-endif()
+include("${ROOT_DIR}/modules/RootNewMacros.cmake")
 # fix missing include directories property in versions < ROOT 6.12
 set_target_properties(ROOT::Core PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${ROOT_INCLUDE_DIRS}")

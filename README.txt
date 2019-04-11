@@ -4,29 +4,19 @@ About:
 Tool to unpack the .hld binary data into ROOT tree structure. This README is probably outdated, so be watchful
 
 Prerequisite:
-- BOOST at least 1.50 
+- ROOT at least 6.0
+- BOOST at least 1.50 to run tests
 
 Installation:
 - Download Unpacker2 directory
-- Enter Unpacker2 directory
 - mkdir build 
 - cd build
-- cmake ..
-- make 
-- Download the tools2 directory
-- Adjust the path the Unpacker2 library in rootlogon.c
+- cmake -DCMAKE_INSTALL_PREFIX=<install_path> ..
+- make install
 
-Tools package description:
-	- generate_corrections_TRB3_dataStructureV2: macro used for generating TDC calibration parameters. Run as T->Process on an unpacked in RAW mode root tree with calibration triggers
-	- run_analysis: precompiled macro taht runs a sequence of tools required to achieve a root Tree with properly calculated hit times
-	- calculate_times: precompiled macro that creates timelines for all the hits on channels
-	- calculate_hits: precompiled macro that creates hit objects out of timeline times
 
 Usage:
-- prepare an XML file with setup description
-- from tools2 run root -l
-- type the following command:
-  Unpacker2 u("full_path_to_hld_file", "full_path_to_config_file", number_of_evts_to_analyze)
+- use as library to another program
 
 Setup description file:
 All fields are required
