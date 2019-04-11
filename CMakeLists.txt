@@ -128,6 +128,11 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2ConfigVersion.cmake"
         DESTINATION lib/cmake/Unpacker2
         )
+        
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
+              "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2.rootmap"
+        DESTINATION lib
+        )
 
 #unit tests
 option(PACKAGE_TESTS "Build the tests" ON)
