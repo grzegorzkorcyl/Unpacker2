@@ -1,21 +1,3 @@
-cmake_minimum_required(VERSION 3.1...3.14)
-
-if(${CMAKE_VERSION} VERSION_LESS 3.14)
-    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-else()
-    cmake_policy(VERSION 3.14)
-endif()
-
-# Force out-of-source build
-file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
-if(EXISTS "${LOC_PATH}")
-    message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
-endif()
-
-project(Unpacker2Tests VERSION 1.0.0
-                  DESCRIPTION "Unpacker2Tests module"
-                  LANGUAGES CXX)
-
 set(CMAKE_CXX_STANDARD 11) # maybe not best solutio to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
