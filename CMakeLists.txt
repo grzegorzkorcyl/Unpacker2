@@ -13,8 +13,8 @@ if(EXISTS "${LOC_PATH}")
 endif()
 
 project(Unpacker2 VERSION 1.0.0
-                  DESCRIPTION "Unpacker2 module"
                   LANGUAGES CXX)
+set(PROJECT_DESCRIPTION "Unpacker2 module")
 
 set(CMAKE_CXX_STANDARD 11) # maybe not best solution to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -109,13 +109,14 @@ if(IPOresult)
 endif()
 
 
+include(GNUInstallDirs)
 install(TARGETS Unpacker2
         EXPORT Unpacker2
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        INCLUDES DESTINATION include
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(EXPORT Unpacker2
         FILE Unpacker2Targets.cmake
