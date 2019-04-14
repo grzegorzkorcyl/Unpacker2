@@ -12,14 +12,11 @@ install:
   - sudo apt-get install -y cmake 
 script:
     - wget https://root.cern/download/root_v6.16.00.Linux-ubuntu16-x86_64-gcc5.4.tar.gz
-    - tar xvzf root_v6.16.00.Linux-ubuntu16-x86_64-gcc5.4.tar.gz
+    - tar xzf root_v6.16.00.Linux-ubuntu16-x86_64-gcc5.4.tar.gz
     - source root/bin/thisroot.sh
-    - cd Unpacker2
     - mkdir build
     - cd build
     - cmake ..
-    - make Unpacker2Test
+    - cmake --build .
     - cd tests
-    - ./run_tests.pl -f xml
-    - chmod a+x parseXML.py
-    - ./parseXML.py
+    - ctest
