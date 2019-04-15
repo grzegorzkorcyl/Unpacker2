@@ -153,7 +153,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
 option(PACKAGE_TESTS "Build the tests" ON)
 if(PACKAGE_TESTS)
     enable_testing()
-    file(COPY scripts/run_tests.pl DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests)
     file(COPY scripts/parseXML.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests)
     add_subdirectory(tests)
 endif()
