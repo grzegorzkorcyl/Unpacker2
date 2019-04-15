@@ -33,7 +33,7 @@ endif()
 macro(package_add_test TESTNAME)
     add_executable(${TESTNAME} ${ARGN})
     target_link_libraries(${TESTNAME} Unpacker2 Boost::unit_test_framework)
-    add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
+    add_test(NAME ${TESTNAME} COMMAND ${TESTNAME} "--log_level=ALL --log_format=XML --log_sink=${TESTNAME}.log")
     set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
 endmacro()
 
