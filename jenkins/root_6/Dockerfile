@@ -54,6 +54,7 @@ RUN mkdir -p root-system/etc
 RUN cd root-6.12.06/build && cmake -Dbuiltin_fftw3=ON -Dbuiltin_ftgl=ON -Dfail-on-missing=ON -Dgviz=OFF -Dbonjour=OFF -Dkrb5=OFF -Dcastor=OFF -Drfio=OFF -Dmysql=OFF -Doracle=OFF -Dodbc=OFF -Dsqlite=OFF -Dpythia6=OFF -Dbuiltin_xrootd=ON -Dgfal=OFF -Ddcache=OFF -Dldap=OFF -Dchirp=OFF -Dhdfs=OFF -Dbuiltin_davix=ON -DCMAKE_INSTALL_PREFIX=/root-system --build .. && make && make install
 
 COPY docker-entrypoint.sh /usr/local/bin/
+RUN mkdir -p /Unpacker2
 RUN chmod 777 /usr/local/bin/docker-entrypoint.sh \
   && ln -s /usr/local/bin/docker-entrypoint.sh / && ln -s /usr/local/bin/docker-entrypoint.sh /Unpacker2
 
