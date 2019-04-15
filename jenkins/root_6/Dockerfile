@@ -52,8 +52,13 @@ RUN tar xvzf root_v6.12.06.source.tar.gz
 RUN mkdir -p root-system
 RUN mkdir -p root-system/etc
 RUN cd root-6.12.06/build && cmake -Dbuiltin_fftw3=ON -Dbuiltin_ftgl=ON -Dfail-on-missing=ON -Dgviz=OFF -Dbonjour=OFF -Dkrb5=OFF -Dcastor=OFF -Drfio=OFF -Dmysql=OFF -Doracle=OFF -Dodbc=OFF -Dsqlite=OFF -Dpythia6=OFF -Dbuiltin_xrootd=ON -Dgfal=OFF -Ddcache=OFF -Dldap=OFF -Dchirp=OFF -Dhdfs=OFF -Dbuiltin_davix=ON -DCMAKE_INSTALL_PREFIX=/root-system --build .. && make && make install
-WORKDIR /Unpacker2
+
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod 777 /usr/local/bin/docker-entrypoint.sh \
   && ln -s /usr/local/bin/docker-entrypoint.sh / && ln -s /usr/local/bin/docker-entrypoint.sh /Unpacker2
+
+RUN useradd -rm -d /home/jenkins -s /bin/bash -g root -G sudo -u 1000 jenkins
+USER jenkins
+WORKDIR /Unpacker2
+
 ENTRYPOINT [ "bash", "-c", "docker-entrypoint.sh" ]
