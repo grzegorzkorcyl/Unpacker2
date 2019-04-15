@@ -102,11 +102,11 @@ target_include_directories(Unpacker2
 target_link_libraries(Unpacker2 PUBLIC ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 
-include(CheckIPOSupported) # only avaiable in 3.9+
-check_ipo_supported(RESULT IPOresult)
-if(IPOresult)
-  set_target_properties(Unpacker2 PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-endif()
+#include(CheckIPOSupported) # only avaiable in 3.9+
+#check_ipo_supported(RESULT IPOresult)
+#if(IPOresult)
+#  set_target_properties(Unpacker2 PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+#endif()
 
 
 include(GNUInstallDirs)
