@@ -42,6 +42,12 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
     )
 
+#Configure Boost
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost 1.58 REQUIRED) # boost component for header-only libraries
+
 # Configure ROOT
 ## Based on https://cliutils.gitlab.io/modern-cmake/chapters/packages/ROOT.html
 find_package(ROOT CONFIG REQUIRED)
@@ -99,7 +105,7 @@ target_include_directories(Unpacker2
                            PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<INSTALL_INTERFACE:include>)
-target_link_libraries(Unpacker2 PUBLIC ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
+target_link_libraries(Unpacker2 PUBLIC Boost::boost ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 
 #include(CheckIPOSupported) # only avaiable in 3.9+
