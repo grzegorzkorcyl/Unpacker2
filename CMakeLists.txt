@@ -48,6 +48,14 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.58 REQUIRED) # boost component for header-only libraries
 
+if(NOT TARGET Boost::boost)
+    add_library(Boost::boost IMPORTED INTERFACE)
+    set_property(TARGET Boost::boost PROPERTY
+        INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR})
+    set_property(TARGET Boost::boost PROPERTY
+        INTERFACE_LINK_LIBRARIES ${Boost_LIBRARIES})
+endif()
+
 # Configure ROOT
 ## Based on https://cliutils.gitlab.io/modern-cmake/chapters/packages/ROOT.html
 find_package(ROOT CONFIG REQUIRED)
