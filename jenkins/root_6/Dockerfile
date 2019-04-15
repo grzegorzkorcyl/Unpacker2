@@ -56,4 +56,7 @@ WORKDIR /Unpacker2
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod 777 /usr/local/bin/docker-entrypoint.sh \
   && ln -s /usr/local/bin/docker-entrypoint.sh / && ln -s /usr/local/bin/docker-entrypoint.sh /Unpacker2
+RUN groupadd -g 1000 jenkins && useradd -r -u 1000 -g jenkins jenkins
+RUN usermod -a -G root jenkins
+USER jenkins
 ENTRYPOINT [ "bash", "-c", "docker-entrypoint.sh" ]
