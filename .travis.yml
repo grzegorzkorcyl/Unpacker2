@@ -15,6 +15,6 @@ script:
     - mkdir build
     - cd build
     - cmake ..
-    - cmake --build .
+    - make VERBOSE=1
     - cd tests
     - ctest
