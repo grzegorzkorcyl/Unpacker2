@@ -11,7 +11,7 @@ executeCommand "export CMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH:/framework-depende
 executeCommand "export CMAKE_INCLUDE_PATH=$CMAKE_INCLUDE_PATH:/framework-dependencies/include"
 executeCommand "source /root-system/bin/thisroot.sh"
 executeCommand "cmake .."
-executeCommand "make install"
+executeCommand "sudo make install"
 executeCommand "cd tests"
 executeCommand "./run_tests.pl -f xml"
 executeCommand "chmod a+x parseXML.py"
