@@ -34,6 +34,15 @@ endif()
 # Include cmake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Be nice and export compile commands by default, this is handy for clang-tidy
+# and for other tools.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Helpful option enable build profiling to identify slowly compiling files
+option(MEASURE_ALL "When enabled all commands will be passed through time command" OFF)
+if(MEASURE_ALL)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "time")
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
@@ -115,6 +124,7 @@ target_include_directories(Unpacker2
                            $<INSTALL_INTERFACE:include>)
 target_link_libraries(Unpacker2 PUBLIC Boost::boost ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(Unpacker2 PROPERTIES POSITION_INDEPENDENT_CODE ON) #-fPIC for shared library
 
 #include(CheckIPOSupported) # only avaiable in 3.9+
 #check_ipo_supported(RESULT IPOresult)
@@ -153,7 +163,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
 option(PACKAGE_TESTS "Build the tests" ON)
 if(PACKAGE_TESTS)
     enable_testing()
-    file(COPY scripts/parseXML.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests)
     add_subdirectory(tests)
 endif()
 
