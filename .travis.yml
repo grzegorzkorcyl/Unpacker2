@@ -18,4 +18,4 @@ script:
     - make
     - ctest
     - cd tests
-    - grep -rwnl . -e 'Error' | xarg cat
+    - grep -rwnl . -e 'Error' | xargs cat
