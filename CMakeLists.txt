@@ -12,7 +12,14 @@ if(EXISTS "${LOC_PATH}")
     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
 endif()
 
-project(Unpacker2 VERSION 1.0.0
+## Set correct project version based on: https://semver.org/
+# Given a version number MAJOR.MINOR.PATCH, increment the:
+#
+# MAJOR version when you make incompatible API changes,
+# MINOR version when you add functionality in a backwards-compatible manner, and
+# PATCH version when you make backwards-compatible bug fixes.
+
+project(Unpacker2 VERSION 2.0.0
                   LANGUAGES CXX)
 set(PROJECT_DESCRIPTION "Unpacker2 module")
 
@@ -125,6 +132,7 @@ target_include_directories(Unpacker2
 target_link_libraries(Unpacker2 PUBLIC Boost::boost ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(Unpacker2 PROPERTIES POSITION_INDEPENDENT_CODE ON) #-fPIC for shared library
+set_target_properties(Unpacker2 PROPERTIES VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
 #include(CheckIPOSupported) # only avaiable in 3.9+
 #check_ipo_supported(RESULT IPOresult)
