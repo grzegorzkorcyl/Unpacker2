@@ -689,5 +689,5 @@ size_t Unpacker2::ReverseHex(size_t n)
 
   e = a | b | c | d;
 
-          return e;
+  return e;
 }
