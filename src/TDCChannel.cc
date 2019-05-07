@@ -25,5 +25,4 @@ void TDCChannel::Clear(Option_t *){
   
   leadTimes.clear();
   trailTimes.clear();
-
 }
