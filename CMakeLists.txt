@@ -23,6 +23,10 @@ project(Unpacker2 VERSION 2.0.0
                   LANGUAGES CXX)
 set(PROJECT_DESCRIPTION "Unpacker2 module")
 
+message(STATUS "")
+message(STATUS "    == ${PROJECT_NAME} Project configuration ==")
+message(STATUS "")
+
 set(CMAKE_CXX_STANDARD 11) # maybe not best solution to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -49,6 +53,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(MEASURE_ALL "When enabled all commands will be passed through time command" OFF)
 if(MEASURE_ALL)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "time")
+endif()
+
+################################################################################
+## Install format hook to git
+## Automatically installs hook to .git/hooks/pre-commit to format code with clang-format
+option(INSTALL_HOOK "Install format hook to .git/hooks/pre-commit" ON)
+if(INSTALL_HOOK)
+  message(STATUS "Trying to install format hook..")
+  set(INSTALL_HOOK ${CMAKE_CURRENT_SOURCE_DIR}/hooks/git-pre-commit-format install)
+  execute_process(COMMAND ${INSTALL_HOOK})
 endif()
 
 include(CMakePackageConfigHelpers)
@@ -194,3 +208,15 @@ set(CPACK_SOURCE_IGNORE_FILES
 )
 
 include(CPack)
+
+################################################################################
+# Wrap up of settings printed on build
+message(STATUS "")
+message(STATUS "    == Final overview for ${PROJECT_NAME} ==")
+message(STATUS "Version:              ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+message(STATUS "Install prefix:       ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Compiler:             ${CMAKE_CXX_COMPILER}")
+message(STATUS "CMAKE_BUILD_TYPE:     ${CMAKE_BUILD_TYPE}")
+message(STATUS "  possible options: Debug Release RelWithDebInfo MinSizeRel")
+message(STATUS "  set with ` cmake -DCMAKE_BUILD_TYPE=Debug .. `")
+message(STATUS "")
