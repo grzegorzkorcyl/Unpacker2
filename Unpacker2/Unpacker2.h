@@ -18,15 +18,15 @@ public:
   Unpacker2();
   ~Unpacker2() {}
   void Init();
-  void UnpackSingleStep(const char *hldFile, const char *configFile,
-    int numberOfEvents, int refChannelOffset,
-    const char *TOTcalibFile, const char *TDCcalibFile
+  void UnpackSingleStep(
+    std::string inputFile, std::string inputPath, std::string outputPath,
+    std::string configFile, int numberOfEvents, int refChannelOffset,
+    std::string TOTcalibFile, std::string TDCcalibFile
   );
 
   TH1F *loadCalibHisto(const char *calibFile);
   bool loadTDCcalibFile(const char *calibFile);
-  void ParseConfigFile(std::string f, std::string s);
-  void DistributeEventsSingleStep(std::string file);
+
 
   struct EventHdr {
     UInt_t fullSize;
@@ -61,14 +61,23 @@ public:
   size_t ReverseHex(size_t n);
 
 protected:
+  void ParseConfigFile();
+  void DistributeEventsSingleStep();
+
+  std::string fInputFile;
+  std::string fInputFilePath;
+  std::string fOutputFilePath;
+  std::string fConfigFile;
+  std::string fTOTCalibFile;
+  std::string fTDCCalibFile;
   std::map<UInt_t, UInt_t> tdc_offsets;
   int highest_channel_number = -1;
-  int refChannelOffset;
-  int eventsToAnalyze;
+  int fRefChannelOffset;
+  int fEventsToAnalyze;
   bool debugMode;
 
 private:
-  bool areBytesToBeInverted(std::string);
+  bool areBytesToBeInverted();
   size_t reverseHex(size_t n);
 
   const static int kMaxAllowedRepetitions = 1;

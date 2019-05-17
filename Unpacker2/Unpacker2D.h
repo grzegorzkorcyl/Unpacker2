@@ -8,12 +8,15 @@
 
 class Unpacker2D : public Unpacker2 {
 public:
-  void UnpackSingleStep(const char *hldFile, const char *configFile,
-                        int numberOfEvents, int refChannelOffset,
-                        const char *TOTcalibFile, const char *TDCcalibFile);
+  void UnpackSingleStep(
+    std::string inputFile, std::string inputPath, std::string outputPath,
+    std::string configFile, int numberOfEvents, int refChannelOffset,
+    std::string TOTcalibFile, std::string TDCcalibFile
+  );
 
-  void ParseConfigFile(std::string f, std::string s);
-  void DistributeEventsSingleStep(std::string file);
+protected:
+  void ParseConfigFile();
+  void DistributeEventsSingleStep();
 };
 
 #endif

@@ -79,11 +79,11 @@ void BuildEvent(EventIII *e, map<UInt_t, vector<UInt_t>> *m) {
 }
 
 // parsing xml config file
-void Unpacker2D::ParseConfigFile(string f, string s) {
+void Unpacker2D::ParseConfigFile() {
   boost::property_tree::ptree tree;
 
   try {
-    boost::property_tree::read_xml(s, tree);
+    boost::property_tree::read_xml(fConfigFile, tree);
   } catch (boost::property_tree::xml_parser_error e) {
     cerr << "ERROR: Failed to read config file" << endl;
     exit(0);
@@ -163,27 +163,36 @@ void Unpacker2D::ParseConfigFile(string f, string s) {
   }
 }
 
-void Unpacker2D::UnpackSingleStep(const char *hldFile, const char *configFile,
-                                  int numberOfEvents, int refChannelOffset,
-                                  const char *TOTcalibFile,
-                                  const char *TDCcalibFile) {
-  eventsToAnalyze = numberOfEvents;
-  this->refChannelOffset = refChannelOffset;
+void Unpacker2D::UnpackSingleStep(
+  string inputFile, string inputPath, string outputPath,
+  string configFile, int numberOfEvents, int refChannelOffset,
+  string totCalibFile, std::string tdcCalibFile)
+{
+  fInputFile = inputFile;
+  fInputFilePath = inputPath;
+  fOutputFilePath = outputPath;
+  fConfigFile = configFile;
+  fTOTCalibFile = totCalibFile;
+  fTDCCalibFile = tdcCalibFile;
 
+  fEventsToAnalyze = numberOfEvents;
+  fRefChannelOffset = refChannelOffset;
   // tdc_offsets[0xa110] = 0;
-  ParseConfigFile(string(hldFile), string(configFile));
 
-  DistributeEventsSingleStep(string(hldFile));
+  ParseConfigFile();
+
+  DistributeEventsSingleStep();
 }
 
-void Unpacker2D::DistributeEventsSingleStep(string filename) {
-  ifstream *file = new ifstream(filename.c_str());
+void Unpacker2D::DistributeEventsSingleStep() {
+  string fileName = fInputFilePath+fInputFile;
+  ifstream *file = new ifstream(fileName.c_str());
 
   if (file->is_open()) {
 
     EventIII *eventIII = new EventIII();
 
-    string newFileName = filename + ".root";
+    string newFileName = fOutputFilePath + fInputFile + ".root";
     TFile *newFile = new TFile(newFileName.c_str(), "RECREATE");
     TTree *newTree = new TTree("T", "Tree");
 
@@ -281,7 +290,7 @@ void Unpacker2D::DistributeEventsSingleStep(string filename) {
       }
       currentOffset = offsets_it->second;
 
-      if (nEvents == eventsToAnalyze) {
+      if (nEvents == fEventsToAnalyze) {
         printf("Max timeslots reached\n");
         break;
       }

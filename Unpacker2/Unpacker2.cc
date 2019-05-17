@@ -1,12 +1,12 @@
-#include "Unpacker2.h"
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include "TimeDateDecoder.h"
 #include <TObjString.h>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-#include <fstream>
+#include "Unpacker2.h"
 #include <iostream>
-#include <map>
 #include <sstream>
+#include <fstream>
+#include <map>
 
 using namespace std;
 
@@ -14,10 +14,9 @@ string UIntToString(UInt_t t) {
   string s = "0000";
   stringstream sstream;
   sstream << hex << t;
-
-  s = s.replace(4 - sstream.str().length(), sstream.str().length(),
-                sstream.str());
-
+  s = s.replace(
+    4 - sstream.str().length(), sstream.str().length(), sstream.str()
+  );
   return s;
 }
 
@@ -41,41 +40,54 @@ UInt_t ReverseHex(UInt_t n) {
 Unpacker2::Unpacker2() { Init(); }
 
 void Unpacker2::Init() {
-  debugMode = false;
 
+  fInputFile = std::string("");
+  fInputFilePath = std::string("");
+  fOutputFilePath = std::string("");
+  fConfigFile = std::string("");
+  fTOTCalibFile = std::string("");
+  fTDCCalibFile = std::string("");
+
+  debugMode = false;
   invertBytes = false;
   fullSetup = true;
 
   fileSize = 0;
 }
 
-void Unpacker2::UnpackSingleStep(const char *hldFile, const char *configFile,
-                                 int numberOfEvents, int refChannelOffset,
-                                 const char *TOTcalibFile,
-                                 const char *TDCcalibFile) {
+void Unpacker2::UnpackSingleStep(
+  string inputFile, std::string inputPath, std::string outputPath,
+  string configFile, int numberOfEvents, int refChannelOffset,
+  string totCalibFile, string tdcCalibFile) {
 
-  eventsToAnalyze = numberOfEvents;
+  fInputFile = inputFile;
+  fInputFilePath = inputPath;
+  fOutputFilePath = outputPath;
+  fConfigFile = configFile;
+  fTOTCalibFile = totCalibFile;
+  fTDCCalibFile = tdcCalibFile;
 
-  this->refChannelOffset = refChannelOffset;
+  fEventsToAnalyze = numberOfEvents;
+  fRefChannelOffset = refChannelOffset;
 
   //*** PARSING CONFIG FILE
-  ParseConfigFile(string(hldFile), string(configFile));
+  ParseConfigFile();
 
-  TOTcalibHist = loadCalibHisto(TOTcalibFile);
-
+  TOTcalibHist = loadCalibHisto(fTOTCalibFile.c_str());
   useTDCcorrection = false;
-  if (strlen(TDCcalibFile) != 0) {
-    useTDCcorrection = loadTDCcalibFile(TDCcalibFile);
+  if (strlen(fTDCCalibFile.c_str()) != 0) {
+    useTDCcorrection = loadTDCcalibFile(fTDCCalibFile.c_str());
   }
 
   //*** READING BINARY DATA AND DISTRIBUTING IT TO APPROPRIATE UNPACKING MODULES
-  DistributeEventsSingleStep(string(hldFile));
+  DistributeEventsSingleStep();
 }
 
-bool Unpacker2::areBytesToBeInverted(string f) {
+bool Unpacker2::areBytesToBeInverted() {
   bool invert = false;
   // open the data file to check the byte ordering
-  ifstream *file = new ifstream(f.c_str());
+  string fileName = fInputFilePath+fInputFile;
+  ifstream *file = new ifstream(fileName.c_str());
 
   if (file->is_open()) {
 
@@ -99,15 +111,15 @@ bool Unpacker2::areBytesToBeInverted(string f) {
   return invert;
 }
 
-void Unpacker2::ParseConfigFile(string f, string s) {
+void Unpacker2::ParseConfigFile() {
 
-  invertBytes = areBytesToBeInverted(f);
+  invertBytes = areBytesToBeInverted();
 
   // parsing xml config file
   boost::property_tree::ptree tree;
 
   try {
-    boost::property_tree::read_xml(s, tree);
+    boost::property_tree::read_xml(fConfigFile, tree);
   } catch (boost::property_tree::xml_parser_error e) {
     cerr << "ERROR: Failed to read config file" << endl;
     exit(0);
@@ -187,8 +199,10 @@ void Unpacker2::ParseConfigFile(string f, string s) {
   }
 }
 
-void Unpacker2::DistributeEventsSingleStep(string filename) {
-  ifstream *file = new ifstream(filename.c_str());
+void Unpacker2::DistributeEventsSingleStep() {
+
+  string fileName = fInputFilePath+fInputFile;
+  ifstream *file = new ifstream(fileName.c_str());
 
   if (file->is_open()) {
 
@@ -200,7 +214,8 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
     EventIII *eventIII = 0;
 
     // open a new file
-    string newFileName = filename + ".root";
+    string newFileName = fOutputFilePath + fInputFile + ".root";
+
     TFile *newFile = new TFile(newFileName.c_str(), "RECREATE");
     TTree *newTree = new TTree("T", "Tree");
     Int_t split = 2;
@@ -495,7 +510,7 @@ void Unpacker2::DistributeEventsSingleStep(string filename) {
       if ((file->eof() == true) || ((int)file->tellg() == fileSize)) {
         break;
       }
-      if (analyzedEvents == eventsToAnalyze) {
+      if (analyzedEvents == fEventsToAnalyze) {
         break;
       }
     }
@@ -528,9 +543,9 @@ TH1F *Unpacker2::loadCalibHisto(const char *calibFile) {
   string calibFileName = string(calibFile);
   if (calibFileName.find(".root") == string::npos) {
     returnHisto = new TH1F("stretcher_offsets", "stretcher_offsets",
-                           REF_CHANNELS_NUMBER * refChannelOffset, 0,
-                           REF_CHANNELS_NUMBER * refChannelOffset);
-    for (int i = 0; i < REF_CHANNELS_NUMBER * refChannelOffset; i++) {
+                           REF_CHANNELS_NUMBER * fRefChannelOffset, 0,
+                           REF_CHANNELS_NUMBER * fRefChannelOffset);
+    for (int i = 0; i < REF_CHANNELS_NUMBER * fRefChannelOffset; i++) {
       returnHisto->SetBinContent(i + 1, 0);
     }
     cerr << "Zero offsets and calib loaded" << endl;
