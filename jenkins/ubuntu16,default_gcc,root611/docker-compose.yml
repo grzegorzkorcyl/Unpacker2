@@ -1,4 +1,4 @@
-unpacker2:
+ubuntu16default_gccroot611_unpacker2:
   build: .
   volumes:
     - /var/run/docker.sock:/var/run/docker.sock
