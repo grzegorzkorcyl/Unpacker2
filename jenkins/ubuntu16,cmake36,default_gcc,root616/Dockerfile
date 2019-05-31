@@ -55,7 +55,7 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.6.0/cmake-3.6.0.t
 RUN tar xvzf cmake-3.6.0.tar.gz
 RUN cd cmake-3.6.0 && ./configure && make && make install && cd ..
 RUN apt update && apt -y install python-numpy && rm -rf /var/lib/apt/lists/*
-RUN cd root-6.16.00/build && cmake -Dbuiltin_fftw3=ON -Dbuiltin_ftgl=ON -Dfail-on-missing=ON -Dgviz=OFF -Dbonjour=OFF -Dkrb5=OFF -Dcastor=OFF -Drfio=OFF -Dmysql=OFF -Doracle=OFF -Dodbc=OFF -Dsqlite=OFF -Dpythia6=OFF -Dbuiltin_xrootd=ON -Dgfal=OFF -Ddcache=OFF -Dldap=OFF -Dchirp=OFF -Dhdfs=OFF -Dbuiltin_davix=ON -DCMAKE_INSTALL_PREFIX=/root-system --build .. && make && make install
+RUN cd root-6.16.00/build && cmake -Dbuiltin_fftw3=ON -Dbuiltin_ftgl=ON -Dfail-on-missing=ON -Dgviz=OFF -Dbonjour=OFF -Dkrb5=OFF -Dcastor=OFF -Drfio=OFF -Dmysql=OFF -Doracle=OFF -Dodbc=OFF -Dsqlite=OFF -Dpythia6=OFF -Dbuiltin_xrootd=ON -Dgfal=OFF -Ddcache=OFF -Dldap=OFF -Dchirp=OFF -Dhdfs=OFF -Dbuiltin_davix=ON -Dbuiltin_tbb=ON -DCMAKE_INSTALL_PREFIX=/root-system --build .. && make && make install
 WORKDIR /Unpacker2
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod 777 /usr/local/bin/docker-entrypoint.sh \
