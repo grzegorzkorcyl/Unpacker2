@@ -1,24 +1,20 @@
-UNPACKER2:
+# UNPACKER2:
 
-About:
+## About:
 Tool to unpack the .hld binary data into ROOT tree structure. This README is probably outdated, so be watchful
 
-Prerequisite:
+## Prerequisite:
 - ROOT at least 6.0
 - BOOST at least 1.50 to run tests
 
-Installation:
-- Download Unpacker2 directory
-- mkdir build 
-- cd build
-- cmake -DCMAKE_INSTALL_PREFIX=<install_path> ..
-- make install
+## Installation:
+Please see the file called [INSTALL](INSTALL).
 
 
-Usage:
+## Usage:
 - use as library to another program
 
-Setup description file:
+## Setup description file:
 All fields are required
 
 - main module <READOUT>

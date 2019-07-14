@@ -169,18 +169,18 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(EXPORT Unpacker2
         FILE Unpacker2Targets.cmake
         NAMESPACE Unpacker2::
-        DESTINATION lib/cmake/Unpacker2
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/Unpacker2
          )
 
 configure_file(Unpacker2Config.cmake.in Unpacker2Config.cmake @ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2ConfigVersion.cmake"
-        DESTINATION lib/cmake/Unpacker2
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/Unpacker2
         )
         
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
               "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2.rootmap"
-        DESTINATION lib
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 
 #unit tests
