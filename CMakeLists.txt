@@ -121,18 +121,17 @@ foreach(_flag ${ROOT_EXE_LINKER_FLAG_LIST})
     set_property(TARGET ROOT::Flags_CXX APPEND PROPERTY
         INTERFACE_LINK_LIBRARIES ${ROOT_EXE_LINKER_FLAGS})
 endforeach()
-
 set(DICTIONARY_NAME G__Unpacker2)
 set(HEADERS_WITH_DICTIONARY_REQUIRED
-  EventIII.h
-  TDCChannel.h
+ ${CMAKE_CURRENT_SOURCE_DIR}/include/EventIII.h
+ ${CMAKE_CURRENT_SOURCE_DIR}/include/TDCChannel.h
   )
 
 set(LINKDEF_NAME Unpacker2_LinkDef.h)
 
 include_directories(ROOT_BUG) # Fix bug in NewMacros Root file
 ROOT_GENERATE_DICTIONARY(${DICTIONARY_NAME} ${HEADERS_WITH_DICTIONARY_REQUIRED}
-  OPTIONS -I${CMAKE_CURRENT_SOURCE_DIR}/include
+  OPTIONS -Iinclude
   LINKDEF ${LINKDEF_NAME})
 ## End of configuration of ROOT
 
