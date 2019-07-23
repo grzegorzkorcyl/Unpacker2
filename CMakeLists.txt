@@ -132,7 +132,7 @@ set(LINKDEF_NAME Unpacker2_LinkDef.h)
 
 include_directories(ROOT_BUG) # Fix bug in NewMacros Root file
 ROOT_GENERATE_DICTIONARY(${DICTIONARY_NAME} ${HEADERS_WITH_DICTIONARY_REQUIRED}
-  OPTIONS -Iinclude
+  OPTIONS -I${CMAKE_CURRENT_SOURCE_DIR}/include
   LINKDEF ${LINKDEF_NAME})
 ## End of configuration of ROOT
 
