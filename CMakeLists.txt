@@ -93,7 +93,14 @@ if(ROOT_FOUND)
   message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
 endif()
 
-include("${ROOT_DIR}/modules/RootNewMacros.cmake")
+if(EXISTS "${ROOT_DIR}/modules/RootNewMacros.cmake")
+  include("${ROOT_DIR}/modules/RootNewMacros.cmake")
+elseif(EXISTS "${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")
+  include("${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")
+else()
+  message(ERROR "Could not find RootNewMacros.cmake file! Aborting..")
+  include("${ROOT_DIR}/modules/RootNewMacros.cmake")
+endif()
 # fix missing include directories property in versions < ROOT 6.12
 set_target_properties(ROOT::Core PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${ROOT_INCLUDE_DIRS}")
