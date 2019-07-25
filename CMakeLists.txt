@@ -194,6 +194,15 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 
+        configure_file("${PROJECT_BINARY_DIR}/Unpacker2Config.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Config.cmake" COPYONLY) 
+        configure_file("${PROJECT_BINARY_DIR}/Unpacker2ConfigVersion.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2ConfigVersion.cmake" COPYONLY) 
+export(EXPORT Unpacker2 FILE Unpacker2Targets.cmake NAMESPACE Unpacker2::)
+add_custom_target(
+  copy_target
+  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_BINARY_DIR}/Unpacker2Targets.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Targets.cmake"
+  DEPENDS "${PROJECT_BINARY_DIR}/Unpacker2Targets.cmake")
+add_dependencies(Unpacker2 copy_target) 
+
 #unit tests
 option(PACKAGE_TESTS "Build the tests" ON)
 if(PACKAGE_TESTS)
