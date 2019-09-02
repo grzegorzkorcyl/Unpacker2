@@ -93,6 +93,10 @@ if(ROOT_FOUND)
   message(STATUS "ROOT (version ${ROOT_VERSION}) was found using ROOTConfig")
 endif()
 
+if(ROOT_VERSION VERSION_LESS "6.10")
+  message(FATAL_ERROR "Only ROOT >= 6.10 is currently supported")
+endif(ROOT_VERSION VERSION_LESS "6.10")
+
 if(EXISTS "${ROOT_DIR}/modules/RootNewMacros.cmake")
   include("${ROOT_DIR}/modules/RootNewMacros.cmake")
   message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/modules!")
