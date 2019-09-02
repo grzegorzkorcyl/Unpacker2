@@ -3,8 +3,7 @@
 ## Basic steps
 
 1. Install the required libraries and tools.  
-   Refer to the `Requirements` section of this document for details.  
-   You can find ready commands for some systems in the `Requirements installation` section.
+   Refer to the `Requirements` section of this document for details.
 
 2. Create a directory where the built programs will be placed, e.g. in the main directory:  
    `mkdir build`  
@@ -19,7 +18,7 @@
 
 5. Once the compilation is finished, you can run tests with:
    `ctest`
-   or install libraries in <install_path> using:
+   or install libraries in `<install_path>` using:
    `make install`
 
 **NOTE:** Full install procedure with tips and troubleshooting can be found on [PetWiki](http://koza.if.uj.edu.pl/petwiki/index.php/Installing_the_J-PET_Framework_on_Ubuntu)
@@ -37,3 +36,10 @@
     Atleast boost 1.50
 
 5. Optional, if you want to generate documentation: [Doxygen](www.doxygen.org)
+
+## CPack
+
+To generate .deb package after compilation type:
+`cpack`
+or to generate .tar.gz package type:
+`cpack -G TGZ`
