@@ -1,85 +1,85 @@
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include "Unpacker2D.h"
+#include "TDCChannel.h"
+#include "EventIII.h"
 #include <iostream>
-#include <map>
-#include <string>
-#include <vector>
 #include <TFile.h>
 #include <TTree.h>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-#include "EventIII.h"
-#include "TDCChannel.h"
-#include "Unpacker2D.h"
+#include <string>
+#include <vector>
+#include <map>
 
 using namespace std;
 
 UInt_t ReverseHexDJ(UInt_t n) {
-  UInt_t a, b, c, d, e;
-  a = n & 0x000000ff;
-  b = n & 0x0000ff00;
-  c = n & 0x00ff0000;
-  d = n & 0xff000000;
+	UInt_t a, b, c, d, e;
+	a = n & 0x000000ff;
+	b = n & 0x0000ff00;
+	c = n & 0x00ff0000;
+	d = n & 0xff000000;
 
-  a <<= 8;
-  b >>= 8;
-  c <<= 8;
-  d >>= 8;
+	a <<= 8;
+	b >>= 8;
+	c <<= 8;
+	d >>= 8;
 
-  e = a | b | c | d;
+	e = a|b|c|d;
 
-  return e;
+	return e;
 }
 
 UInt_t ReverseHexTDC(UInt_t n) {
-  UInt_t a, b, c, d, e;
-  a = n & 0x000000ff;
-  b = n & 0x0000ff00;
-  c = n & 0x00ff0000;
-  d = n & 0xff000000;
+	UInt_t a, b, c, d, e;
+	a = n & 0x000000ff;
+	b = n & 0x0000ff00;
+	c = n & 0x00ff0000;
+	d = n & 0xff000000;
 
-  a <<= 24;
-  b <<= 8;
-  c >>= 8;
-  d >>= 24;
+	a <<= 24;
+	b <<= 8;
+	c >>= 8;
+	d >>= 24;
 
-  e = a | b | c | d;
+	e = a|b|c|d;
 
-  return e;
+	return e;
 }
 
-void BuildEvent(EventIII *e, map<UInt_t, vector<UInt_t>> *m) {
+void BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t> >* m) {
+
+  // if (m->size() > 0) printf("ms: %d\n", m->size());
 
   UInt_t data;
-  UInt_t fine;
-  UInt_t coarse;
-  UInt_t rising;
-  double time = 0;
+	UInt_t fine;
+	UInt_t coarse;
+	UInt_t rising;
+	double time = 0;
 
-  map<UInt_t, vector<UInt_t>>::iterator m_it;
-  for (m_it = m->begin(); m_it != m->end(); m_it++) {
-    TDCChannel *tc = e->AddTDCChannel(m_it->first);
-    for (int i = 0; i < m_it->second.size(); i++) {
-
-      data = m_it->second[i];
-
-      fine = data & 0xff;
+	map<UInt_t, vector<UInt_t> >::iterator m_it;
+	for (m_it = m->begin(); m_it != m->end(); m_it++) {
+    TDCChannel* tc = e->AddTDCChannel(m_it->first);
+		for (unsigned int i = 0; i < m_it->second.size(); i++) {
+			data = m_it->second[i];
+			fine = data & 0xff;
       coarse = (data >> 8) & 0xffff;
       rising = (data >> 31);
-
       time = coarse * 3.3 + fine * 0.025;
 
-      if (rising == 1) {
-        tc->AddLead(time);
-      } else {
-        tc->AddTrail(time);
-      }
-    }
-  }
+      // printf("%x: f:%d c:%d ch:%d r:%d t:%lf\n", data, fine, coarse, m_it->first, rising, time);
 
-  m->clear();
+			if (rising == 0) {
+				tc->AddLead(time);
+			}	else {
+				tc->AddTrail(time);
+			}
+		}
+	}
+	m->clear();
 }
 
-// parsing xml config file
 void Unpacker2D::ParseConfigFile() {
+  // parsing xml config file
   boost::property_tree::ptree tree;
 
   try {
@@ -100,7 +100,7 @@ void Unpacker2D::ParseConfigFile() {
   }
 
   if (debugMode == true)
-    cerr << "DEBUG mode on" << endl;
+    cerr<<"DEBUG mode on"<<endl;
 
   // get the first data source entry in the config file
   boost::property_tree::ptree readoutTree = tree.get_child("READOUT");
@@ -111,47 +111,42 @@ void Unpacker2D::ParseConfigFile() {
   string correctionFile;
   int channels = 0;
   int offset = 0;
-  // int resolution = 0;
-  // int referenceChannel = 0;
+  //int resolution = 0;
+  //int referenceChannel = 0;
   string measurementType("");
   highest_channel_number = 0;
 
   // iterate through entries and create appropriate unpackers
-  for (const auto &readoutEntry : readoutTree) {
+  for (const auto& readoutEntry : readoutTree) {
     // read out values from xml entry
     if ((readoutEntry.first) == "DATA_SOURCE") {
       type = (readoutEntry.second).get<string>("TYPE");
       address_s = (readoutEntry.second).get<string>("TRBNET_ADDRESS");
       hubAddress = (readoutEntry.second).get<string>("HUB_ADDRESS");
-      // referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
+      //referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
       correctionFile = (readoutEntry.second).get<string>("CORRECTION_FILE");
 
-      if (correctionFile.compare("raw") != 0) {
-        cerr << "WARNING: The TDC correction file path was set in the XML "
-                "config file of the Unpacker!"
-             << endl;
-        cerr << "This file path should be defined in the user parameters JSON "
-                "file instead."
-             << endl;
+      if (correctionFile.compare("raw") != 0){
+        cerr << "WARNING: The TDC correction file path was set in the XML config file of the Unpacker!" << endl;
+        cerr << "This file path should be defined in the user parameters JSON file instead." << endl;
         cerr << "The setting from the XML file fill be ignored!" << endl;
       }
 
       if (type == "TRB3_S" || type == "DJPET_ENDP") {
 
         // create additional unpackers for internal modules
-        boost::property_tree::ptree modulesTree =
-            (readoutEntry.second).get_child("MODULES");
-        for (const auto &module : modulesTree) {
+        boost::property_tree::ptree modulesTree = (readoutEntry.second).get_child("MODULES");
+        for (const auto& module : modulesTree) {
           type = (module.second).get<string>("TYPE");
           address_s = (module.second).get<string>("TRBNET_ADDRESS");
-          address = std::stoul(address_s, 0, 16);
+          address = std::stoul(address_s, 0 , 16);
           channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
-          // resolution = (module.second).get<int>("RESOLUTION");
+          //resolution = (module.second).get<int>("RESOLUTION");
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
           tdc_offsets[address] = offset;
-          if (offset + channels > highest_channel_number) {
+          if( offset + channels > highest_channel_number ){
             highest_channel_number = offset + channels;
           }
         }
@@ -174,176 +169,170 @@ void Unpacker2D::UnpackSingleStep(
   fConfigFile = configFile;
   fTOTCalibFile = totCalibFile;
   fTDCCalibFile = tdcCalibFile;
-
   fEventsToAnalyze = numberOfEvents;
   fRefChannelOffset = refChannelOffset;
-  // tdc_offsets[0xa110] = 0;
-
-  ParseConfigFile();
-
-  DistributeEventsSingleStep();
+	//tdc_offsets[0xa110] = 0;
+	ParseConfigFile();
+	DistributeEventsSingleStep();
 }
 
 void Unpacker2D::DistributeEventsSingleStep() {
   string fileName = fInputFilePath+fInputFile;
   ifstream *file = new ifstream(fileName.c_str());
 
-  if (file->is_open()) {
+	if (file->is_open()) {
 
-    EventIII *eventIII = new EventIII();
-
+		EventIII* eventIII = new EventIII();
     string newFileName = fOutputFilePath + fInputFile + ".root";
-    TFile *newFile = new TFile(newFileName.c_str(), "RECREATE");
-    TTree *newTree = new TTree("T", "Tree");
+		TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
+		TTree* newTree = new TTree("T", "Tree");
 
-    newTree->Branch("eventIII", "EventIII", &eventIII, 64000, 99);
+		newTree->Branch("eventIII", "EventIII", &eventIII, 64000, 99);
 
-    UInt_t data4;
-    Int_t nBytes;
-    UInt_t nEvents = 0;
+		UInt_t data4;
+		Int_t nBytes;
+		UInt_t nEvents = 0;
+		UInt_t queueSize = 0;
+		UInt_t queueDecoding = 0;
+		UInt_t subSize = 0;
+		UInt_t subDecoding = 0;
+		UInt_t ftabId = 0;
+		UInt_t ftabSize = 0;
+		UInt_t ftabTrgn = 0;
+		UInt_t ftabDbg = 0;
+		UInt_t dataCtr = 0;
+		UInt_t channel = 0;
+		UInt_t currentOffset = 0;
 
-    UInt_t queueSize = 0;
-    UInt_t queueDecoding = 0;
-    UInt_t subSize = 0;
-    UInt_t subDecoding = 0;
-    UInt_t ftabId = 0;
-    UInt_t ftabSize = 0;
-    UInt_t ftabTrgn = 0;
-    UInt_t ftabDbg = 0;
-    UInt_t dataCtr = 0;
-    UInt_t channel = 0;
-    UInt_t currentOffset = 0;
+		map<UInt_t, UInt_t>::iterator offsets_it;
+		map<UInt_t, vector<UInt_t> > tdc_channels;
 
-    map<UInt_t, UInt_t>::iterator offsets_it;
-    map<UInt_t, vector<UInt_t>> tdc_channels;
+		// skip the first entry
+		file->ignore(32);
 
-    // skip the first entry
-    file->ignore(32);
+		while(!file->eof()) {
+			nBytes = 0;
+			if (nEvents % 10000 == 0) {
+				printf("%d\n", nEvents);
+			}
+      // if (nEvents == 8800)
+      // break;
+			eventIII->Clear();
 
-    while (!file->eof()) {
-      nBytes = 0;
+			// queue headers
+			// size
+			file->read((char*) & data4, 4);
+			nBytes += 4;
+			queueSize = data4 / 4;
 
-      if (nEvents % 10000 == 0) {
-        printf("%d\n", nEvents);
-      }
+			// printf("queue size: %d x:%x\n", queueSize, data4);
 
-      eventIII->Clear();
+			// skip bad entries
+			if (queueSize < 0x20) {
+				file->ignore(28);
+				nBytes += 28;
+				if (debugMode)
+					printf("Skipping too small queue\n");
+				continue;
+			}
 
-      // queue headers
-      // size
-      file->read((char *)&data4, 4);
-      nBytes += 4;
-      queueSize = data4;
+			// decoding
+			file->read((char*)&data4, 4);
+			nBytes += 4;
+			queueDecoding = data4;
 
-      // skip bad entries
-      if (queueSize == 0x20) {
-        file->ignore(28);
-        nBytes += 28;
-        if (debugMode)
-          printf("Skipping too small queue\n");
-        continue;
-      }
+			// skip some headers
+			file->ignore(8);
+			nBytes += 8;
 
-      // decoding
-      file->read((char *)&data4, 4);
-      nBytes += 4;
-      queueDecoding = data4;
+			// subevent
+			// sub size
+			file->read((char*)&data4, 4);
+			nBytes += 4;
+			subSize = data4 & 0xffff;
 
-      // skip some headers
-      file->ignore(8);
-      nBytes += 8;
+			// sub decoding
+			file->read((char*)&data4, 4);
+			nBytes += 4;
+			subDecoding = data4;
 
-      // subevent
-      // sub size
-      file->read((char *)&data4, 4);
-      nBytes += 4;
-      subSize = data4 & 0xffff;
+			// skip some headers
+			file->ignore(24);
+			nBytes += 24;
 
-      // sub decoding
-      file->read((char *)&data4, 4);
-      nBytes += 4;
-      subDecoding = data4;
+			queueSize -= 12;
 
-      // skip some headers
-      file->ignore(24);
-      nBytes += 24;
+			while(!file->eof()) {
+				// ftab header
+				// ftab size and id
+				file->read((char*)&data4, 4);
+				nBytes += 4;
 
-      // ftab header
-      // ftab size and id
-      file->read((char *)&data4, 4);
-      nBytes += 4;
-      data4 = ReverseHexDJ(data4);
-      ftabSize = data4 >> 16;
-      ftabId = data4 & 0xffff;
+				// printf("first word: %x\n", data4);
 
-      // ftab trigger number and debug
-      file->read((char *)&data4, 4);
-      nBytes += 4;
-      data4 = ReverseHexDJ(data4);
-      ftabDbg = data4 >> 16;
-      ftabTrgn = data4 & 0xffff;
+				data4 = ReverseHexDJ(data4);
+				ftabSize = data4 >> 16;
+				ftabId = data4 & 0xffff;
 
-      offsets_it = tdc_offsets.find(ftabId);
-      if (offsets_it == tdc_offsets.end()) {
-        printf("Wrong ftab ID\n");
-        break;
-      }
-      currentOffset = offsets_it->second;
+				// ftab trigger number and debug
+				file->read((char*)&data4, 4);
+				nBytes += 4;
+				data4 = ReverseHexDJ(data4);
+				ftabDbg = data4 >> 16;
+				ftabTrgn = data4 & 0xffff;
 
-      if (nEvents == fEventsToAnalyze) {
-        printf("Max timeslots reached\n");
-        break;
-      }
+				queueSize -= 2;
 
-      // ftab data
-      while (!file->eof()) {
-        file->read((char *)&data4, 4);
-        nBytes += 4;
+				// std::cerr<<std::hex<<ftabId<<std::dec<<" "<<ftabSize<<std::endl;
 
-        data4 = ReverseHexTDC(data4);
+				offsets_it = tdc_offsets.find(ftabId);
+				if (offsets_it == tdc_offsets.end()) {
+					printf("Wrong ftab ID\n");
+					break;
+				}
+				currentOffset = offsets_it->second;
 
-        if ((data4 >> 24) != 0xfc) {
-          channel = (data4 >> 24) & 0x7f;
+				// ftab data
+				while(!file->eof()) {
+					file->read((char*)&data4, 4);
+					nBytes += 4;
+					queueSize--;
+					data4 = ReverseHexTDC(data4);
 
-          tdc_channels[channel + currentOffset].push_back(data4);
-        }
+					if (data4 == 0xffffffff) {
+						file->read((char*)&data4, 4);
+						// printf("last word: %x, q: %d\n", data4, queueSize);
+						nBytes += 4;
+						queueSize--;
+						break;
+					}
 
-        if (ftabSize % 2 == 0) {
-          if (dataCtr == ftabSize - 5) {
-            dataCtr = 0;
-            // skip trailing
-            file->ignore(8);
-            nBytes += 8;
+					if ((data4 >> 24) != 0xfc) {
+						channel = (data4 >> 24) & 0x7f;
+						tdc_channels[channel + currentOffset].push_back(data4);
+					}
+					dataCtr++;
+				}
 
-            BuildEvent(eventIII, &tdc_channels);
+				if (queueSize < 4) {
+					if (queueSize == 1)	file->ignore(4);
+					BuildEvent(eventIII, &tdc_channels);
+					newTree->Fill();
+					break;
+				}
+			}
 
-            newTree->Fill();
-            break;
-          }
-        } else {
-          if (dataCtr == ftabSize - 5) {
-            dataCtr = 0;
-            // skip trailing
-            file->ignore(12);
-            nBytes += 12;
+			nEvents++;
 
-            BuildEvent(eventIII, &tdc_channels);
+			if (nEvents == fEventsToAnalyze) {
+				printf("Max timeslots reached\n");
+				break;
+			}
+		}
 
-            newTree->Fill();
-            break;
-          }
-        }
-
-        dataCtr++;
-      }
-
-      nEvents++;
-    }
-
-    newFile->Write();
-    delete newTree;
-    file->close();
-  } else {
-    cerr << "ERROR: failed to open data file" << endl;
-  }
+		newFile->Write();
+		delete newTree;
+		file->close();
+	}
+	else { cerr<<"ERROR: failed to open data file"<<endl; }
 }
