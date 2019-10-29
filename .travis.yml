@@ -1,28 +1,21 @@
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
 compiler:
 - gcc
 os:
 - linux
 install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y git
-  - sudo apt-get install -y libboost-all-dev 
-  - sudo apt-get install -y cmake 
-  - sudo apt-get install -y root-system
+  - sudo apt-get install -y git libboost-all-dev libtbb-dev cmake
 script:
-    - cd Unpacker2
+    - wget https://root.cern/download/root_v6.12.06.Linux-ubuntu16-x86_64-gcc5.4.tar.gz
+    - tar xzf root_v6.12.06.Linux-ubuntu16-x86_64-gcc5.4.tar.gz
+    - source root/bin/thisroot.sh
     - mkdir build
     - cd build
     - cmake ..
-    - make unpacker_tests
+    - make
+    - ctest
     - cd tests
-    - ./run_tests.pl -f xml
-    - chmod a+x parseXML.py
-    - ./parseXML.py
-notifications:
-  email:
-    - aleksander.gajos@doctoral.uj.edu.pl
-    - wojciech.krzemien@ncbj.gov.pl
-    - dominik.nowogorski@gmail.com
+    - grep -rwnl . -e 'Error' | xargs cat
