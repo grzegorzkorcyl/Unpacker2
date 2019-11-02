@@ -48,7 +48,7 @@ UInt_t ReverseHexTDC(UInt_t n)
   return e;
 }
 
-void BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t> >* m)
+void BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t> >* m, map<UInt_t, double>* refTimes)
 {
 	UInt_t data;
 	UInt_t fine;
@@ -212,8 +212,11 @@ void Unpacker2D::DistributeEventsSingleStep()
     while (!file->eof()) {
       nBytes = 0;
       if (nEvents % 10000 == 0) {
-        printf("%d\n", nEvents);
+        std::cout << std::string(30, '\b');
+        std::cout << std::string(30, ' ');
+        std::cout << '\r' << "Unpacker2D: " << nEvents << " time slots unpacked "<< std::flush;
       }
+
       eventIII->Clear();
 
       // queue headers

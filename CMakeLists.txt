@@ -152,7 +152,7 @@ ROOT_GENERATE_DICTIONARY(${DICTIONARY_NAME} ${HEADERS_WITH_DICTIONARY_REQUIRED}
 ## End of configuration of ROOT
 
 # Set all sources
-set(SOURCES src/Unpacker2.cc src/EventIII.cc src/TDCChannel.cc ${DICTIONARY_NAME}.cxx)
+set(SOURCES src/Unpacker2.cc src/Unpacker2D.cc src/EventIII.cc src/TDCChannel.cc ${DICTIONARY_NAME}.cxx)
 
 add_library(Unpacker2 SHARED ${SOURCES})
 #TODO: maybe change namespace to JPetTomography?
@@ -192,20 +192,20 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/Unpacker2ConfigVersion.cmake"
         DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
         )
-        
+
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
               "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2.rootmap"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 
-        configure_file("${PROJECT_BINARY_DIR}/Unpacker2Config.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Config.cmake" COPYONLY) 
-        configure_file("${PROJECT_BINARY_DIR}/Unpacker2ConfigVersion.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2ConfigVersion.cmake" COPYONLY) 
+        configure_file("${PROJECT_BINARY_DIR}/Unpacker2Config.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Config.cmake" COPYONLY)
+        configure_file("${PROJECT_BINARY_DIR}/Unpacker2ConfigVersion.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2ConfigVersion.cmake" COPYONLY)
 export(EXPORT Unpacker2 FILE Unpacker2Targets.cmake NAMESPACE Unpacker2::)
 add_custom_target(
   copy_target
   COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_BINARY_DIR}/Unpacker2Targets.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Targets.cmake"
   DEPENDS "${PROJECT_BINARY_DIR}/Unpacker2Targets.cmake")
-add_dependencies(Unpacker2 copy_target) 
+add_dependencies(Unpacker2 copy_target)
 
 #unit tests
 option(PACKAGE_TESTS "Build the tests" ON)
