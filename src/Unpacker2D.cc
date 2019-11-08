@@ -48,7 +48,7 @@ UInt_t ReverseHexTDC(UInt_t n)
   return e;
 }
 
-void BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>* refTimes)
+void Unpacker2D::BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>* refTimes)
 {
   UInt_t data;
   UInt_t fine;
@@ -68,9 +68,12 @@ void BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>
       coarse = (data >> 8) & 0xffff;
       rising = (data >> 31);
 
-      if (useTDCcorrection == true){
+      if (useTDCcorrection)
+      {
         time = coarse * 3.3 + ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)) / 1000.0);
-      }else{
+      }
+      else
+      {
         time = coarse * 3.3 + fine * 0.025;
       }
 
@@ -78,21 +81,26 @@ void BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>
 
       if (rising == 0)
       {
-        if (refTime - time < 0){
+        if (refTime - time < 0)
+        {
           tc->AddLead((refTime + (0xffff * 3.3)) - time);
-        }else{
+        }
+        else
+        {
           tc->AddLead(refTime - time);
-	}
+        }
       }
       else
       {
-        if (refTime - time < 0){
+        if (refTime - time < 0)
+        {
           tc->AddTrail((refTime + (0xffff * 3.3)) - time);
-        }else{
+        }
+        else
+        {
           tc->AddTrail(refTime - time);
-	}
+        }
       }
-      
     }
   }
   m->clear();
@@ -202,6 +210,13 @@ void Unpacker2D::UnpackSingleStep(string inputFile, string inputPath, string out
   fEventsToAnalyze = numberOfEvents;
   fRefChannelOffset = refChannelOffset;
   ParseConfigFile();
+
+  if (!fTDCCalibFile.empty())
+  {
+    useTDCcorrection = loadTDCcalibFile(fTDCCalibFile.c_str());
+    std::cout << "Using TDC calib" << std::endl;
+  }
+
   DistributeEventsSingleStep();
 }
 
@@ -298,6 +313,8 @@ void Unpacker2D::DistributeEventsSingleStep()
 
       queueSize -= 12;
 
+      refTimes.clear();
+
       while (!file->eof())
       {
         // ftab header
@@ -346,7 +363,15 @@ void Unpacker2D::DistributeEventsSingleStep()
             channel = (data4 >> 24) & 0x7f;
             if (channel == 104)
             {
-              refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * 3.3) + ((data4 & 0xff) * 0.025);
+              if (useTDCcorrection)
+              {
+                refTimes[currentOffset] =
+                    (((data4 >> 8) & 0xffff) * 3.3) + ((TDCcorrections[channel + currentOffset]->GetBinContent((data4 & 0xff) + 1)) / 1000.0);
+              }
+              else
+              {
+                refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * 3.3) + ((data4 & 0xff) * 0.025);
+              }
             }
             else
             {

@@ -76,14 +76,15 @@ protected:
   int fEventsToAnalyze;
   bool debugMode;
 
+protected:
+  TH1F **TDCcorrections = nullptr;  
+  bool useTDCcorrection = false;
+  
 private:
   bool areBytesToBeInverted();
   size_t reverseHex(size_t n);
-
   const static int kMaxAllowedRepetitions = 1;
-  TH1F **TDCcorrections = nullptr;
   TH1F *TOTcalibHist = nullptr;
-  bool useTDCcorrection = false;
   long int fileSize;
   bool invertBytes;
   bool fullSetup;
