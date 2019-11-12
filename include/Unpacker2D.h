@@ -17,6 +17,7 @@ public:
 protected:
   void ParseConfigFile();
   void DistributeEventsSingleStep();
+  void BuildEvent(EventIII* e, std::map<UInt_t, std::vector<UInt_t> >* m, std::map<UInt_t, double>* refTimes);
 };
 
 #endif
