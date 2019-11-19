@@ -1,14 +1,14 @@
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include "Unpacker2D.h"
-#include "EventIII.h"
 #include "TDCChannel.h"
+#include "EventIII.h"
+#include <iostream>
 #include <TFile.h>
 #include <TTree.h>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-#include <iostream>
-#include <map>
 #include <string>
 #include <vector>
+#include <map>
 
 using namespace std;
 
@@ -48,8 +48,9 @@ UInt_t ReverseHexTDC(UInt_t n)
   return e;
 }
 
-void Unpacker2D::BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>* refTimes)
-{
+void Unpacker2D::BuildEvent(
+  EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>* refTimes
+){
   UInt_t data;
   UInt_t fine;
   UInt_t coarse;
@@ -70,11 +71,11 @@ void Unpacker2D::BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UIn
 
       if (useTDCcorrection)
       {
-        time = coarse * 3.3 + ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)) / 1000.0);
+        time = coarse * 2.7027 + ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)) / 1000.0);
       }
       else
       {
-        time = coarse * 3.3 + fine * 0.025;
+        time = coarse * 2.7027 + fine * 0.025;
       }
 
       refTime = refTimes->find((int)((m_it->first - 2100) / 105) * 105 + 2100)->second;
@@ -83,7 +84,7 @@ void Unpacker2D::BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UIn
       {
         if (refTime - time < 0)
         {
-          tc->AddLead((refTime + (0xffff * 3.3)) - time);
+          tc->AddLead((refTime + (0xffff * 2.7027)) - time);
         }
         else
         {
@@ -94,7 +95,7 @@ void Unpacker2D::BuildEvent(EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UIn
       {
         if (refTime - time < 0)
         {
-          tc->AddTrail((refTime + (0xffff * 3.3)) - time);
+          tc->AddTrail((refTime + (0xffff * 2.7027)) - time);
         }
         else
         {
@@ -198,9 +199,10 @@ void Unpacker2D::ParseConfigFile()
   }
 }
 
-void Unpacker2D::UnpackSingleStep(string inputFile, string inputPath, string outputPath, string configFile, int numberOfEvents, int refChannelOffset,
-                                  string totCalibFile, std::string tdcCalibFile)
-{
+void Unpacker2D::UnpackSingleStep(
+  string inputFile, string inputPath, string outputPath, string configFile,
+  int numberOfEvents, int refChannelOffset, string totCalibFile, std::string tdcCalibFile
+) {
   fInputFile = inputFile;
   fInputFilePath = inputPath;
   fOutputFilePath = outputPath;
@@ -337,7 +339,7 @@ void Unpacker2D::DistributeEventsSingleStep()
         offsets_it = tdc_offsets.find(ftabId);
         if (offsets_it == tdc_offsets.end())
         {
-          printf("Wrong ftab ID\n");
+          std::cout << "Wrong ftab ID: " << ftabId << endl;
           break;
         }
         currentOffset = offsets_it->second;
@@ -366,11 +368,11 @@ void Unpacker2D::DistributeEventsSingleStep()
               if (useTDCcorrection)
               {
                 refTimes[currentOffset] =
-                    (((data4 >> 8) & 0xffff) * 3.3) + ((TDCcorrections[channel + currentOffset]->GetBinContent((data4 & 0xff) + 1)) / 1000.0);
+                    (((data4 >> 8) & 0xffff) * 2.7027) + ((TDCcorrections[channel + currentOffset]->GetBinContent((data4 & 0xff) + 1)) / 1000.0);
               }
               else
               {
-                refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * 3.3) + ((data4 & 0xff) * 0.025);
+                refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * 2.7027) + ((data4 & 0xff) * 0.025);
               }
             }
             else
