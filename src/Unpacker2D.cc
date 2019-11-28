@@ -82,29 +82,28 @@ void Unpacker2D::BuildEvent(
 
       if (rising == 0)
       {
-        if (refTime - time < 0)
+        if (time - refTime < 0)
         {
-          tc->AddLead((refTime + (0xffff * 2.7027)) - time);
+          tc->AddLead(time + ((0xffff * 2.7027) - refTime));
         }
         else
         {
-          tc->AddLead(refTime - time);
+          tc->AddLead(time - refTime);
         }
       }
       else
       {
-        if (refTime - time < 0)
+        if (time - refTime < 0)
         {
-          tc->AddTrail((refTime + (0xffff * 2.7027)) - time);
+          tc->AddTrail(time + ((0xffff * 2.7027) - refTime));
         }
         else
         {
-          tc->AddTrail(refTime - time);
+          tc->AddTrail(time - refTime);
         }
       }
     }
   }
-  m->clear();
 }
 
 void Unpacker2D::ParseConfigFile()
@@ -216,7 +215,6 @@ void Unpacker2D::UnpackSingleStep(
   if (!fTDCCalibFile.empty())
   {
     useTDCcorrection = loadTDCcalibFile(fTDCCalibFile.c_str());
-    std::cout << "Using TDC calib" << std::endl;
   }
 
   DistributeEventsSingleStep();
@@ -255,6 +253,9 @@ void Unpacker2D::DistributeEventsSingleStep()
     map<UInt_t, UInt_t>::iterator offsets_it;
     map<UInt_t, vector<UInt_t>> tdc_channels;
     map<UInt_t, double> refTimes;
+    map<UInt_t, double> previousRefTimes;
+    bool missingRef = false;
+    int refTimesCtr = 0;
 
     // skip the first entry
     file->ignore(32);
@@ -315,7 +316,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 
       queueSize -= 12;
 
-      refTimes.clear();
+      refTimesCtr = 0;
 
       while (!file->eof())
       {
@@ -342,7 +343,13 @@ void Unpacker2D::DistributeEventsSingleStep()
           std::cout << "Wrong ftab ID: " << ftabId << endl;
           break;
         }
+
         currentOffset = offsets_it->second;
+
+        if (nEvents > 0)
+        {
+          previousRefTimes[currentOffset] = refTimes[currentOffset];
+        }
 
         // ftab data
         while (!file->eof())
@@ -374,6 +381,7 @@ void Unpacker2D::DistributeEventsSingleStep()
               {
                 refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * 2.7027) + ((data4 & 0xff) * 0.025);
               }
+              refTimesCtr++;
             }
             else
             {
@@ -389,18 +397,29 @@ void Unpacker2D::DistributeEventsSingleStep()
           {
             file->ignore(4);
           }
-          if (refTimes.size() == 2)
+          if (refTimesCtr == 2)
           {
-            BuildEvent(eventIII, &tdc_channels, &refTimes);
-            newTree->Fill();
+            if (nEvents > 0)
+            {
+              if (missingRef == false)
+              {
+                BuildEvent(eventIII, &tdc_channels, &previousRefTimes);
+                newTree->Fill();
+              }
+              missingRef = false;
+            }
           }
           else
           {
+            missingRef = true;
             if (debugMode)
             {
               printf("Missing reference time\n");
             }
           }
+
+          tdc_channels.clear();
+
           break;
         }
       }
