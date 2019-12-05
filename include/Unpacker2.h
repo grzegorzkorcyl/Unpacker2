@@ -1,14 +1,14 @@
 #ifndef Unpacker2_h
 #define Unpacker2_h
 
-#include "EventIII.h"
-#include <TFile.h>
-#include <TH1F.h>
-#include <TObject.h>
 #include <TObjectTable.h>
+#include "EventIII.h"
+#include <TObject.h>
+#include <TFile.h>
 #include <TTree.h>
-#include <map>
+#include <TH1F.h>
 #include <string>
+#include <map>
 
 #define REF_CHANNELS_NUMBER 50
 
@@ -26,7 +26,6 @@ public:
 
   TH1F *loadCalibHisto(const char *calibFile);
   bool loadTDCcalibFile(const char *calibFile);
-
 
   struct EventHdr {
     UInt_t fullSize;
@@ -72,6 +71,9 @@ protected:
   std::string fTDCCalibFile;
   std::map<UInt_t, UInt_t> tdc_offsets;
   int highest_channel_number = -1;
+  TH1F **TDCcorrections = nullptr;
+  bool useTDCcorrection = false;
+  TH1F *TOTcalibHist = nullptr;
   int fRefChannelOffset;
   int fEventsToAnalyze;
   bool debugMode;
@@ -79,11 +81,7 @@ protected:
 private:
   bool areBytesToBeInverted();
   size_t reverseHex(size_t n);
-
   const static int kMaxAllowedRepetitions = 1;
-  TH1F **TDCcorrections = nullptr;
-  TH1F *TOTcalibHist = nullptr;
-  bool useTDCcorrection = false;
   long int fileSize;
   bool invertBytes;
   bool fullSetup;

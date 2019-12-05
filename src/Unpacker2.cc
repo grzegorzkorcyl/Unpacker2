@@ -60,7 +60,8 @@ void Unpacker2::Init() {
 void Unpacker2::UnpackSingleStep(
   string inputFile, std::string inputPath, std::string outputPath,
   string configFile, int numberOfEvents, int refChannelOffset,
-  string totCalibFile, string tdcCalibFile) {
+  string totCalibFile, string tdcCalibFile
+) {
 
   fInputFile = inputFile;
   fInputFilePath = inputPath;
@@ -150,20 +151,16 @@ void Unpacker2::ParseConfigFile() {
   string correctionFile;
   int channels = 0;
   int offset = 0;
-  // int resolution = 0;
-  // int referenceChannel = 0;
   string measurementType("");
   highest_channel_number = 0;
 
   // iterate through entries and create appropriate unpackers
   for (const auto &readoutEntry : readoutTree) {
     // read out values from xml entry
-    if ((readoutEntry.first) == "DATA_SOURCE")
-    {
+    if ((readoutEntry.first) == "DATA_SOURCE") {
       type = (readoutEntry.second).get<string>("TYPE");
       address_s = (readoutEntry.second).get<string>("TRBNET_ADDRESS");
       hubAddress = (readoutEntry.second).get<string>("HUB_ADDRESS");
-      // referenceChannel = (readoutEntry.second).get<int>("REFERENCE_CHANNEL");
       correctionFile = (readoutEntry.second).get<string>("CORRECTION_FILE");
 
       if (correctionFile.compare("raw") != 0) {
@@ -179,15 +176,13 @@ void Unpacker2::ParseConfigFile() {
       if (type == "TRB3_S") {
 
         // create additional unpackers for internal modules
-        boost::property_tree::ptree modulesTree =
-            (readoutEntry.second).get_child("MODULES");
+        boost::property_tree::ptree modulesTree = (readoutEntry.second).get_child("MODULES");
         for (const auto &module : modulesTree) {
           type = (module.second).get<string>("TYPE");
           address_s = (module.second).get<string>("TRBNET_ADDRESS");
           address = std::stoul(address_s, 0, 16);
           channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
-          // resolution = (module.second).get<int>("RESOLUTION");
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
           tdc_offsets[address] = offset;
@@ -208,14 +203,12 @@ void Unpacker2::DistributeEventsSingleStep() {
   string fileName = fInputFilePath+fInputFile;
   ifstream *file = new ifstream(fileName.c_str());
 
-  if (file->is_open())
-  {
+  if (file->is_open()) {
 
     // skip the file header
     file->ignore(32);
 
     int analyzedEvents = 0;
-
     EventIII* eventIII = 0;
 
     // open a new file
@@ -274,7 +267,8 @@ void Unpacker2::DistributeEventsSingleStep() {
           cerr << "Unpacker2.cc: Subevent details: "
                << ((SubEventHdr *)subPHdr)->decoding << " "
                << ((SubEventHdr *)subPHdr)->hubAddress << " "
-               << ((SubEventHdr *)subPHdr)->trgNr << endl;
+               << ((SubEventHdr *)subPHdr)->trgNr
+               << endl;
         }
 
         UInt_t data_i = 0;
@@ -303,7 +297,6 @@ void Unpacker2::DistributeEventsSingleStep() {
         TDCChannel *new_ch;
 
         int channelOffset;
-
         size_t initialDataSize = dataSize;
 
         if ((*data) != 0) {
@@ -384,7 +377,7 @@ void Unpacker2::DistributeEventsSingleStep() {
                     prev_fine = fine;
                     prev_coarse = coarse;
 
-                    if (useTDCcorrection == true && TDCcorrections[channel + channelOffset] != nullptr) {
+                    if (useTDCcorrection && TDCcorrections[channel + channelOffset] != nullptr) {
                       fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
                     } else {
                       fine = fine * 10;
@@ -488,11 +481,12 @@ void Unpacker2::DistributeEventsSingleStep() {
       newTree->Fill();
 
       if (analyzedEvents % 10000 == 0) {
-        cerr << analyzedEvents << endl;
+        std::cout << std::string(30, '\b');
+        std::cout << std::string(30, ' ');
+        std::cout << '\r' << "Unpacker2: " << analyzedEvents << " time slots unpacked " << std::flush;
       }
 
       analyzedEvents++;
-
       eventIII->Clear();
 
       if (debugMode) {
@@ -519,7 +513,6 @@ void Unpacker2::DistributeEventsSingleStep() {
     }
 
     h_rep->Write();
-
     newFile->Write();
 
     TObjString timestamp(
@@ -544,19 +537,22 @@ TH1F *Unpacker2::loadCalibHisto(const char *calibFile) {
   TH1F *tmp;
   TH1F *returnHisto;
 
-  // load zero offsets in case no file is specified
   string calibFileName = string(calibFile);
   if (calibFileName.find(".root") == string::npos) {
-    returnHisto = new TH1F("stretcher_offsets", "stretcher_offsets",
-                           REF_CHANNELS_NUMBER * fRefChannelOffset, 0,
-                           REF_CHANNELS_NUMBER * fRefChannelOffset);
+    // load zero offsets in case no file is specified
+    returnHisto = new TH1F(
+      "stretcher_offsets", "stretcher_offsets",
+      REF_CHANNELS_NUMBER * fRefChannelOffset, 0,
+      REF_CHANNELS_NUMBER * fRefChannelOffset
+    );
     for (int i = 0; i < REF_CHANNELS_NUMBER * fRefChannelOffset; i++) {
       returnHisto->SetBinContent(i + 1, 0);
     }
-    cerr << "Zero offsets and calib loaded" << endl;
-  }
-  // load the stretcher offsets calibration
-  else {
+    if(debugMode) {
+      cerr << "Zero offsets and calib loaded" << endl;
+    }
+  } else {
+    // load the stretcher offsets calibration
     TFile *file = new TFile();
     ifstream my_file(calibFileName.c_str());
     file = new TFile(calibFileName.c_str(), "READ");
@@ -567,7 +563,7 @@ TH1F *Unpacker2::loadCalibHisto(const char *calibFile) {
     returnHisto->SetDirectory(dir);
 
     if (debugMode) {
-      cerr << "Calculated  calib loaded" << endl;
+      cerr << "Calculated calibrations loaded" << endl;
     }
 
     file->Close();
@@ -638,8 +634,9 @@ std::string Unpacker2::getHubAddress()
   } else {
     sstream << hex << ReverseHex((UInt_t)((SubEventHdr *)subPHdr)->hubAddress);
   }
-  s = s.replace(4 - sstream.str().length(), sstream.str().length(),
-                sstream.str());
+  s = s.replace(
+    4 - sstream.str().length(), sstream.str().length(), sstream.str()
+  );
 
   return s;
 }
