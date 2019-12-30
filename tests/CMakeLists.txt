@@ -1,7 +1,5 @@
 enable_testing()
 
-set(CMAKE_CXX_STANDARD 14) # maybe not best solutio to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
 
@@ -35,6 +33,7 @@ macro(package_add_test TESTNAME)
     target_link_libraries(${TESTNAME} Unpacker2 Boost::unit_test_framework)
     add_test(NAME ${TESTNAME} COMMAND ${TESTNAME} --log_level=error --log_format=XML --log_sink=${TESTNAME}.xml)
     set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
+    target_compile_features(${TESTNAME} PUBLIC cxx_std_14)
 endmacro()
 
 package_add_test(Unpacker2Test Unpacker2Test.cpp)
