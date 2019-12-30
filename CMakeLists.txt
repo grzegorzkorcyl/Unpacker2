@@ -27,6 +27,8 @@ message(STATUS "")
 message(STATUS "    == ${PROJECT_NAME} Project configuration ==")
 message(STATUS "")
 
+set(CMAKE_CXX_STANDARD 14) # maybe not best solution to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
 
@@ -160,7 +162,6 @@ target_include_directories(Unpacker2
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<INSTALL_INTERFACE:include>)
 target_link_libraries(Unpacker2 PUBLIC Boost::boost ROOT::Core ROOT::Hist ROOT::Tree ROOT::Flags_CXX)
-target_compile_features(Unpacker2 PUBLIC cxx_std_14)
 set_target_properties(Unpacker2 PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(Unpacker2 PROPERTIES POSITION_INDEPENDENT_CODE ON) #-fPIC for shared library
 set_target_properties(Unpacker2 PROPERTIES VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
