@@ -10,22 +10,23 @@
 
 class TDCChannel;
 
-class EventIII : public TNamed {
+class EventIII : public TNamed
+{
 
 private:
   Int_t totalNTDCChannels;
 
 public:
-  TClonesArray *TDCChannels;
+  TClonesArray* TDCChannels;
 
   EventIII();
   virtual ~EventIII() { Clear(); }
 
-  TDCChannel *AddTDCChannel(int channel);
+  TDCChannel* AddTDCChannel(int channel);
 
   Int_t GetTotalNTDCChannels() { return totalNTDCChannels; }
 
-  TClonesArray *GetTDCChannelsArray() { return TDCChannels; }
+  TClonesArray* GetTDCChannelsArray() { return TDCChannels; }
 
   void Clear(void);
 

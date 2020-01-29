@@ -7,7 +7,8 @@
 #include <iostream>
 #include <vector>
 
-class TDCChannel : public TObject {
+class TDCChannel : public TObject
+{
 
 protected:
   Int_t channel;
@@ -27,23 +28,27 @@ public:
   void AddLead(double lead);
   void AddTrail(double trail);
 
-  double GetLeadTime(unsigned int mult) {
-    if (mult >= leadTimes.size()) {
+  double GetLeadTime(unsigned int mult)
+  {
+    if (mult >= leadTimes.size())
+    {
       std::cout << "asked for lead time out of range." << std::endl;
       return 0.;
     }
     return leadTimes[mult];
   }
 
-  double GetTrailTime(unsigned int mult) {
-    if (mult >= trailTimes.size()) {
+  double GetTrailTime(unsigned int mult)
+  {
+    if (mult >= trailTimes.size())
+    {
       std::cout << "asked for trail time out of range." << std::endl;
       return 0.;
     }
     return trailTimes[mult];
   }
 
-  void Clear(Option_t *opt);
+  void Clear(Option_t* opt);
 
   ClassDef(TDCChannel, 2);
 };

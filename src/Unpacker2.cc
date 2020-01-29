@@ -1,12 +1,12 @@
-#include <boost/property_tree/xml_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
+#include "Unpacker2.h"
 #include "TimeDateDecoder.h"
 #include <TObjString.h>
-#include "Unpacker2.h"
-#include <iostream>
-#include <sstream>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 #include <fstream>
+#include <iostream>
 #include <map>
+#include <sstream>
 
 using namespace std;
 
@@ -15,9 +15,7 @@ string UIntToString(UInt_t t)
   string s = "0000";
   stringstream sstream;
   sstream << hex << t;
-  s = s.replace(
-    4 - sstream.str().length(), sstream.str().length(), sstream.str()
-  );
+  s = s.replace(4 - sstream.str().length(), sstream.str().length(), sstream.str());
   return s;
 }
 
@@ -41,7 +39,8 @@ UInt_t ReverseHex(UInt_t n)
 
 Unpacker2::Unpacker2() { Init(); }
 
-void Unpacker2::Init() {
+void Unpacker2::Init()
+{
 
   fInputFile = std::string("");
   fInputFilePath = std::string("");
@@ -57,11 +56,9 @@ void Unpacker2::Init() {
   fileSize = 0;
 }
 
-void Unpacker2::UnpackSingleStep(
-  string inputFile, std::string inputPath, std::string outputPath,
-  string configFile, int numberOfEvents, int refChannelOffset,
-  string totCalibFile, string tdcCalibFile
-) {
+void Unpacker2::UnpackSingleStep(string inputFile, std::string inputPath, std::string outputPath, string configFile, int numberOfEvents,
+                                 int refChannelOffset, string totCalibFile, string tdcCalibFile)
+{
 
   fInputFile = inputFile;
   fInputFilePath = inputPath;
@@ -78,7 +75,8 @@ void Unpacker2::UnpackSingleStep(
 
   TOTcalibHist = loadCalibHisto(fTOTCalibFile.c_str());
   useTDCcorrection = false;
-  if (strlen(fTDCCalibFile.c_str()) != 0) {
+  if (strlen(fTDCCalibFile.c_str()) != 0)
+  {
     useTDCcorrection = loadTDCcalibFile(fTDCCalibFile.c_str());
   }
 
@@ -86,23 +84,26 @@ void Unpacker2::UnpackSingleStep(
   DistributeEventsSingleStep();
 }
 
-bool Unpacker2::areBytesToBeInverted() {
+bool Unpacker2::areBytesToBeInverted()
+{
   bool invert = false;
   // open the data file to check the byte ordering
-  string fileName = fInputFilePath+fInputFile;
-  ifstream *file = new ifstream(fileName.c_str());
+  string fileName = fInputFilePath + fInputFile;
+  ifstream* file = new ifstream(fileName.c_str());
 
-  if (file->is_open()) {
+  if (file->is_open())
+  {
 
     // skip the file header
     file->ignore(32);
 
     // read out the header of the event into hdr structure
-    pHdr = (UInt_t *)&hdr;
-    file->read((char *)(pHdr), getHdrSize());
-    subPHdr = (UInt_t *)&subHdr;
-    file->read((char *)(subPHdr), getSubHdrSize());
-    if (((SubEventHdr *)subPHdr)->decoding == 16777728) {
+    pHdr = (UInt_t*)&hdr;
+    file->read((char*)(pHdr), getHdrSize());
+    subPHdr = (UInt_t*)&subHdr;
+    file->read((char*)(subPHdr), getSubHdrSize());
+    if (((SubEventHdr*)subPHdr)->decoding == 16777728)
+    {
       invert = true;
     }
 
@@ -114,31 +115,40 @@ bool Unpacker2::areBytesToBeInverted() {
   return invert;
 }
 
-void Unpacker2::ParseConfigFile() {
+void Unpacker2::ParseConfigFile()
+{
 
   invertBytes = areBytesToBeInverted();
 
   // parsing xml config file
   boost::property_tree::ptree tree;
 
-  try {
+  try
+  {
     boost::property_tree::read_xml(fConfigFile, tree);
-  } catch (boost::property_tree::xml_parser_error e) {
+  }
+  catch (boost::property_tree::xml_parser_error e)
+  {
     cerr << "ERROR: Failed to read config file" << endl;
     exit(0);
   }
 
   // get the config options from the config file
-  try {
-    if (tree.get<string>("READOUT.DEBUG") == "ON") {
+  try
+  {
+    if (tree.get<string>("READOUT.DEBUG") == "ON")
+    {
       debugMode = true;
     }
-  } catch (exception e) {
+  }
+  catch (exception e)
+  {
     cerr << "ERROR: Incorrect config file structure" << endl;
     exit(0);
   }
 
-  if (debugMode){
+  if (debugMode)
+  {
     cerr << "DEBUG mode on" << endl;
   }
 
@@ -155,15 +165,18 @@ void Unpacker2::ParseConfigFile() {
   highest_channel_number = 0;
 
   // iterate through entries and create appropriate unpackers
-  for (const auto &readoutEntry : readoutTree) {
+  for (const auto& readoutEntry : readoutTree)
+  {
     // read out values from xml entry
-    if ((readoutEntry.first) == "DATA_SOURCE") {
+    if ((readoutEntry.first) == "DATA_SOURCE")
+    {
       type = (readoutEntry.second).get<string>("TYPE");
       address_s = (readoutEntry.second).get<string>("TRBNET_ADDRESS");
       hubAddress = (readoutEntry.second).get<string>("HUB_ADDRESS");
       correctionFile = (readoutEntry.second).get<string>("CORRECTION_FILE");
 
-      if (correctionFile.compare("raw") != 0) {
+      if (correctionFile.compare("raw") != 0)
+      {
         cerr << "WARNING: The TDC correction file path was set in the XML "
                 "config file of the Unpacker!"
              << endl;
@@ -173,11 +186,13 @@ void Unpacker2::ParseConfigFile() {
         cerr << "The setting from the XML file fill be ignored!" << endl;
       }
 
-      if (type == "TRB3_S") {
+      if (type == "TRB3_S")
+      {
 
         // create additional unpackers for internal modules
         boost::property_tree::ptree modulesTree = (readoutEntry.second).get_child("MODULES");
-        for (const auto &module : modulesTree) {
+        for (const auto& module : modulesTree)
+        {
           type = (module.second).get<string>("TYPE");
           address_s = (module.second).get<string>("TRBNET_ADDRESS");
           address = std::stoul(address_s, 0, 16);
@@ -186,11 +201,14 @@ void Unpacker2::ParseConfigFile() {
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
 
           tdc_offsets[address] = offset;
-          if (offset + channels > highest_channel_number) {
+          if (offset + channels > highest_channel_number)
+          {
             highest_channel_number = offset + channels;
           }
         }
-      } else {
+      }
+      else
+      {
         cerr << "Incorrect configuration in the xml file!" << endl;
         cerr << "The DATA_SOURCE entry is missing!" << endl;
       }
@@ -198,12 +216,14 @@ void Unpacker2::ParseConfigFile() {
   }
 }
 
-void Unpacker2::DistributeEventsSingleStep() {
+void Unpacker2::DistributeEventsSingleStep()
+{
 
-  string fileName = fInputFilePath+fInputFile;
-  ifstream *file = new ifstream(fileName.c_str());
+  string fileName = fInputFilePath + fInputFile;
+  ifstream* file = new ifstream(fileName.c_str());
 
-  if (file->is_open()) {
+  if (file->is_open())
+  {
 
     // skip the file header
     file->ignore(32);
@@ -214,8 +234,8 @@ void Unpacker2::DistributeEventsSingleStep() {
     // open a new file
     string newFileName = fOutputFilePath + fInputFile + ".root";
 
-    TFile *newFile = new TFile(newFileName.c_str(), "RECREATE");
-    TTree *newTree = new TTree("T", "Tree");
+    TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
+    TTree* newTree = new TTree("T", "Tree");
     Int_t split = 2;
     Int_t bsize = 64000;
 
@@ -229,23 +249,23 @@ void Unpacker2::DistributeEventsSingleStep() {
     size_t initialEventSize = 0;
 
     // iterate through all the events in the file
-    while (true) {
+    while (true)
+    {
 
-      if (debugMode){
+      if (debugMode)
+      {
         cerr << "Unpacker2.cc: Position in file at " << file->tellg();
       }
 
       // read out the header of the event into hdr structure
-      pHdr = (UInt_t *)&hdr;
-      file->read((char *)(pHdr), getHdrSize());
+      pHdr = (UInt_t*)&hdr;
+      file->read((char*)(pHdr), getHdrSize());
 
       eventSize = (size_t)getFullSize();
 
-      if (debugMode) {
-        cerr
-          << " current event size " << eventSize << endl
-          << "Unpacker2.cc: Starting new event analysis, going over subevents"
-          << endl;
+      if (debugMode)
+      {
+        cerr << " current event size " << eventSize << endl << "Unpacker2.cc: Starting new event analysis, going over subevents" << endl;
       }
 
       if (eventSize == 32)
@@ -253,22 +273,21 @@ void Unpacker2::DistributeEventsSingleStep() {
 
       initialEventSize = eventSize;
 
-      while (true) {
-        subPHdr = (UInt_t *)&subHdr;
-        file->read((char *)(subPHdr), getSubHdrSize());
+      while (true)
+      {
+        subPHdr = (UInt_t*)&subHdr;
+        file->read((char*)(subPHdr), getSubHdrSize());
 
         // read out the entire data of the event
-        UInt_t *pData = new UInt_t[getDataSize()];
-        UInt_t *data = pData;
-        file->read((char *)(pData), getDataSize());
+        UInt_t* pData = new UInt_t[getDataSize()];
+        UInt_t* data = pData;
+        file->read((char*)(pData), getDataSize());
 
-        if (debugMode) {
+        if (debugMode)
+        {
           cerr << "Unpacker2.cc: Subevent data size: " << getDataSize() << endl;
-          cerr << "Unpacker2.cc: Subevent details: "
-               << ((SubEventHdr *)subPHdr)->decoding << " "
-               << ((SubEventHdr *)subPHdr)->hubAddress << " "
-               << ((SubEventHdr *)subPHdr)->trgNr
-               << endl;
+          cerr << "Unpacker2.cc: Subevent details: " << ((SubEventHdr*)subPHdr)->decoding << " " << ((SubEventHdr*)subPHdr)->hubAddress << " "
+               << ((SubEventHdr*)subPHdr)->trgNr << endl;
         }
 
         UInt_t data_i = 0;
@@ -294,23 +313,25 @@ void Unpacker2::DistributeEventsSingleStep() {
         bool gotRef;
 
         bool firstHitOnCh;
-        TDCChannel *new_ch;
+        TDCChannel* new_ch;
 
         int channelOffset;
         size_t initialDataSize = dataSize;
 
-        if ((*data) != 0) {
+        if ((*data) != 0)
+        {
 
-          if (debugMode) {
-            cerr << "Unpacker2.cc: Processing event " << analyzedEvents
-                 << " on " << getHubAddress() << endl;
-            cerr << "Unpacker_TRB3.cc: Receiving " << dataSize
-                 << " words to analyze" << endl;
+          if (debugMode)
+          {
+            cerr << "Unpacker2.cc: Processing event " << analyzedEvents << " on " << getHubAddress() << endl;
+            cerr << "Unpacker_TRB3.cc: Receiving " << dataSize << " words to analyze" << endl;
           }
 
-          while (dataSize > 0) {
+          while (dataSize > 0)
+          {
 
-            if (dataSize > initialDataSize) {
+            if (dataSize > initialDataSize)
+            {
               cerr << "ERROR: Incorrect data size encountered, the input file "
                       "is likely corrupted."
                    << endl;
@@ -325,105 +346,123 @@ void Unpacker2::DistributeEventsSingleStep() {
             gotRef = false;
             firstHitOnCh = true;
 
-            if (tdc_offsets.count(tdcNumber) > 0) {
+            if (tdc_offsets.count(tdcNumber) > 0)
+            {
               channelOffset = tdc_offsets.at(tdcNumber);
 
               is = internalSize + 1;
-              while (is > 0) {
+              while (is > 0)
+              {
                 data_i = ReverseHex((*data));
 
                 header = (data_i >> 29);
 
-                switch (header) {
+                switch (header)
+                {
 
-                  case 3: // epoch ctr
-                    epoch = data_i & 0xfffffff;
-                    break;
+                case 3: // epoch ctr
+                  epoch = data_i & 0xfffffff;
+                  break;
 
-                  case 4: // time data
-                    if (channel >= 0 && (unsigned(channel) != ((data_i >> 22) & 0x7f))) {
-                      firstHitOnCh = true;
+                case 4: // time data
+                  if (channel >= 0 && (unsigned(channel) != ((data_i >> 22) & 0x7f)))
+                  {
+                    firstHitOnCh = true;
+                  }
+
+                  channel = (data_i >> 22) & 0x7f;
+                  coarse = (data_i & 0x7ff);
+                  fine = ((data_i >> 12) & 0x3ff);
+                  isRising = ((data_i >> 11) & 0x1);
+
+                  if (channel > 0)
+                  { // skip reference channels
+                    if (fine == prev_fine && coarse == prev_coarse && channel == prev_channel)
+                    {
+                      repetition_counter++;
                     }
+                    else
+                    {
+                      if (repetition_counter > 0)
+                      {
+                        h_rep->Fill(repetition_counter);
+                      }
+                      if (repetition_counter > kMaxAllowedRepetitions)
+                      {
+                        // reset the TDC time contents of the TDCChannel object
+                        // but keep not the channel numner
+                        int tmp_ch = new_ch->GetChannel();
+                        new_ch->Clear("");
+                        new_ch->SetChannel(tmp_ch);
+                        cerr << "WARNING: corrupted data detected on channel " << tmp_ch << ". Skipping event data for this channel." << endl;
+                      }
+                      repetition_counter = 0;
+                    }
+                  }
 
-                    channel = (data_i >> 22) & 0x7f;
-                    coarse = (data_i & 0x7ff);
-                    fine = ((data_i >> 12) & 0x3ff);
-                    isRising = ((data_i >> 11) & 0x1);
+                  prev_channel = channel;
+                  prev_fine = fine;
+                  prev_coarse = coarse;
 
-                    if (channel > 0) { // skip reference channels
-                      if (fine == prev_fine && coarse == prev_coarse &&
-                          channel == prev_channel) {
-                        repetition_counter++;
-                      } else {
-                        if (repetition_counter > 0) {
-                          h_rep->Fill(repetition_counter);
+                  if (useTDCcorrection && TDCcorrections[channel + channelOffset] != nullptr)
+                  {
+                    fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
+                  }
+                  else
+                  {
+                    fine = fine * 10;
+                  }
+
+                  if (fine != 0x3ff)
+                  {
+                    fullTime = (double)(((epoch << 11) * 5.0));
+                    fullTime += (((coarse * 5000.) - fine) / 1000.);
+
+                    if (channel == 0)
+                    {
+                      refTime = fullTime;
+                      gotRef = true;
+                    }
+                    else
+                    {
+                      if (gotRef)
+                      {
+                        if (firstHitOnCh)
+                        {
+                          new_ch = eventIII->AddTDCChannel(channel + channelOffset);
                         }
-                        if (repetition_counter > kMaxAllowedRepetitions) {
-                          // reset the TDC time contents of the TDCChannel object
-                          // but keep not the channel numner
-                          int tmp_ch = new_ch->GetChannel();
-                          new_ch->Clear("");
-                          new_ch->SetChannel(tmp_ch);
-                          cerr << "WARNING: corrupted data detected on channel "
-                               << tmp_ch
-                               << ". Skipping event data for this channel."
-                               << endl;
+
+                        fullTime = fullTime - refTime;
+
+                        if (!isRising)
+                        {
+                          fullTime -= TOTcalibHist->GetBinContent(channel + channelOffset + 1);
+                          new_ch->AddTrail(fullTime);
                         }
-                        repetition_counter = 0;
+                        else
+                        {
+                          new_ch->AddLead(fullTime);
+                        }
+
+                        firstHitOnCh = false;
                       }
                     }
+                  }
 
-                    prev_channel = channel;
-                    prev_fine = fine;
-                    prev_coarse = coarse;
-
-                    if (useTDCcorrection && TDCcorrections[channel + channelOffset] != nullptr) {
-                      fine = TDCcorrections[channel + channelOffset]->GetBinContent(fine + 1);
-                    } else {
-                      fine = fine * 10;
-                    }
-
-                    if (fine != 0x3ff) {
-                      fullTime = (double)(((epoch << 11) * 5.0));
-                      fullTime += (((coarse * 5000.) - fine) / 1000.);
-
-                      if (channel == 0) {
-                        refTime = fullTime;
-                        gotRef = true;
-                      } else {
-                        if (gotRef) {
-                          if (firstHitOnCh) {
-                            new_ch = eventIII->AddTDCChannel(channel + channelOffset);
-                          }
-
-                          fullTime = fullTime - refTime;
-
-                          if (!isRising) {
-                            fullTime -= TOTcalibHist->GetBinContent(
-                                channel + channelOffset + 1);
-                            new_ch->AddTrail(fullTime);
-                          } else {
-                            new_ch->AddLead(fullTime);
-                          }
-
-                          firstHitOnCh = false;
-                        }
-                      }
-                    }
-
-                    break;
-                  default:
-                    break;
+                  break;
+                default:
+                  break;
                 }
 
                 data++;
                 is--;
               }
-            } else {
-              if (debugMode) {
-                cerr << "Unpacker_TRB3.cc: No Unpacker found for module "
-                  << tdcNumber << " skipping " << internalSize << " bytes"
-                  << endl;
+            }
+            else
+            {
+              if (debugMode)
+              {
+                cerr << "Unpacker_TRB3.cc: No Unpacker found for module " << tdcNumber << " skipping " << internalSize << " bytes" << endl;
               }
 
               data += internalSize + 1;
@@ -431,15 +470,15 @@ void Unpacker2::DistributeEventsSingleStep() {
 
             dataSize -= (internalSize + 1) * 4;
           }
-
-        } else if ((*data) == 0) {
-          cerr << "WARNING: First data word empty, skipping event nr "
-               << analyzedEvents << endl;
+        }
+        else if ((*data) == 0)
+        {
+          cerr << "WARNING: First data word empty, skipping event nr " << analyzedEvents << endl;
         }
 
-        if (debugMode){
-          cerr << "Unpacker2.cc: Ignoring " << (getPaddedSize() - getDataSize())
-            << " bytes and reducing eventSize by " << getDataSize();
+        if (debugMode)
+        {
+          cerr << "Unpacker2.cc: Ignoring " << (getPaddedSize() - getDataSize()) << " bytes and reducing eventSize by " << getDataSize();
         }
 
         delete[] pData;
@@ -449,30 +488,34 @@ void Unpacker2::DistributeEventsSingleStep() {
 
         eventSize -= getDataSize();
 
-        if (debugMode){
+        if (debugMode)
+        {
           cerr << " leaving eventSize of " << eventSize << endl;
         }
 
-        if (eventSize > initialEventSize) {
+        if (eventSize > initialEventSize)
+        {
           cerr << "ERROR: Incorrect event size, the input file is likely "
                   "corrupted."
                << endl;
-          cerr << "Stopping event loop after " << analyzedEvents
-               << " events read." << endl;
+          cerr << "Stopping event loop after " << analyzedEvents << " events read." << endl;
           break;
         }
 
-        if (eventSize <= 48 && !fullSetup) {
+        if (eventSize <= 48 && !fullSetup)
+        {
           break;
         }
 
         eventSize -= getPaddedSize() - getDataSize();
 
-        if ((eventSize <= 64) && fullSetup) {
+        if ((eventSize <= 64) && fullSetup)
+        {
           break;
         }
 
-        if ((eventSize <= 176) && fullSetup) {
+        if ((eventSize <= 176) && fullSetup)
+        {
           break;
         }
 
@@ -480,7 +523,8 @@ void Unpacker2::DistributeEventsSingleStep() {
 
       newTree->Fill();
 
-      if (analyzedEvents % 10000 == 0) {
+      if (analyzedEvents % 10000 == 0)
+      {
         std::cout << std::string(30, '\b');
         std::cout << std::string(30, ' ');
         std::cout << '\r' << "Unpacker2: " << analyzedEvents << " time slots unpacked " << std::flush;
@@ -489,25 +533,28 @@ void Unpacker2::DistributeEventsSingleStep() {
       analyzedEvents++;
       eventIII->Clear();
 
-      if (debugMode) {
-        cerr << "Unpacker2.cc: Ignoring padding of the event "
-             << (align8(eventSize) - eventSize) << endl;
-        cerr << "Unpacker2.cc: File pointer at " << file->tellg() << " of "
-             << fileSize << " bytes" << endl;
+      if (debugMode)
+      {
+        cerr << "Unpacker2.cc: Ignoring padding of the event " << (align8(eventSize) - eventSize) << endl;
+        cerr << "Unpacker2.cc: File pointer at " << file->tellg() << " of " << fileSize << " bytes" << endl;
       }
 
-      if (!fullSetup) {
+      if (!fullSetup)
+      {
         file->ignore(align8(eventSize) - eventSize);
       }
 
       // check the end of loop conditions (end of file)
-      if ((fileSize - ((int)file->tellg())) < 500) {
+      if ((fileSize - ((int)file->tellg())) < 500)
+      {
         break;
       }
-      if ((file->eof() == true) || ((int)file->tellg() == fileSize)) {
+      if ((file->eof() == true) || ((int)file->tellg() == fileSize))
+      {
         break;
       }
-      if (analyzedEvents == fEventsToAnalyze) {
+      if (analyzedEvents == fEventsToAnalyze)
+      {
         break;
       }
     }
@@ -515,15 +562,13 @@ void Unpacker2::DistributeEventsSingleStep() {
     h_rep->Write();
     newFile->Write();
 
-    TObjString timestamp(
-      TimeDateDecoder::formatTimeString(
-        ((EventHdr *)pHdr)->date, ((EventHdr *)pHdr)->time
-      ).c_str()
-    );
+    TObjString timestamp(TimeDateDecoder::formatTimeString(((EventHdr*)pHdr)->date, ((EventHdr*)pHdr)->time).c_str());
     timestamp.Write();
 
     delete newTree;
-  } else {
+  }
+  else
+  {
     cerr << "ERROR:failed to open data file" << endl;
   }
 
@@ -532,37 +577,41 @@ void Unpacker2::DistributeEventsSingleStep() {
   //*** END OF READING BINARY DATA
 }
 
-TH1F *Unpacker2::loadCalibHisto(const char *calibFile) {
+TH1F* Unpacker2::loadCalibHisto(const char* calibFile)
+{
 
-  TH1F *tmp;
-  TH1F *returnHisto;
+  TH1F* tmp;
+  TH1F* returnHisto;
 
   string calibFileName = string(calibFile);
-  if (calibFileName.find(".root") == string::npos) {
+  if (calibFileName.find(".root") == string::npos)
+  {
     // load zero offsets in case no file is specified
-    returnHisto = new TH1F(
-      "stretcher_offsets", "stretcher_offsets",
-      REF_CHANNELS_NUMBER * fRefChannelOffset, 0,
-      REF_CHANNELS_NUMBER * fRefChannelOffset
-    );
-    for (int i = 0; i < REF_CHANNELS_NUMBER * fRefChannelOffset; i++) {
+    returnHisto =
+        new TH1F("stretcher_offsets", "stretcher_offsets", REF_CHANNELS_NUMBER * fRefChannelOffset, 0, REF_CHANNELS_NUMBER * fRefChannelOffset);
+    for (int i = 0; i < REF_CHANNELS_NUMBER * fRefChannelOffset; i++)
+    {
       returnHisto->SetBinContent(i + 1, 0);
     }
-    if(debugMode) {
+    if (debugMode)
+    {
       cerr << "Zero offsets and calib loaded" << endl;
     }
-  } else {
+  }
+  else
+  {
     // load the stretcher offsets calibration
-    TFile *file = new TFile();
+    TFile* file = new TFile();
     ifstream my_file(calibFileName.c_str());
     file = new TFile(calibFileName.c_str(), "READ");
-    TDirectory *dir = gDirectory->GetDirectory("Rint:/");
-    tmp = (TH1F *)file->Get("stretcher_offsets");
+    TDirectory* dir = gDirectory->GetDirectory("Rint:/");
+    tmp = (TH1F*)file->Get("stretcher_offsets");
 
-    returnHisto = (TH1F *)(tmp->Clone("stretcher_offsets"));
+    returnHisto = (TH1F*)(tmp->Clone("stretcher_offsets"));
     returnHisto->SetDirectory(dir);
 
-    if (debugMode) {
+    if (debugMode)
+    {
       cerr << "Calculated calibrations loaded" << endl;
     }
 
@@ -572,34 +621,42 @@ TH1F *Unpacker2::loadCalibHisto(const char *calibFile) {
   return returnHisto;
 }
 
-bool Unpacker2::loadTDCcalibFile(const char *calibFile) {
+bool Unpacker2::loadTDCcalibFile(const char* calibFile)
+{
 
-  TFile *f = new TFile(calibFile, "READ");
-  TDirectory *dir = gDirectory->GetDirectory("Rint:/");
+  TFile* f = new TFile(calibFile, "READ");
+  TDirectory* dir = gDirectory->GetDirectory("Rint:/");
 
-  if (f->IsOpen()) {
+  if (f->IsOpen())
+  {
 
-    TDCcorrections = new TH1F *[highest_channel_number];
-    for (int i = 0; i < highest_channel_number; ++i) {
+    TDCcorrections = new TH1F*[highest_channel_number];
+    for (int i = 0; i < highest_channel_number; ++i)
+    {
 
-      TH1F *tmp = dynamic_cast<TH1F *>(f->Get(Form("correction%d", i)));
+      TH1F* tmp = dynamic_cast<TH1F*>(f->Get(Form("correction%d", i)));
 
-      if (tmp) {
-        TDCcorrections[i] = dynamic_cast<TH1F *>(tmp->Clone(tmp->GetName()));
+      if (tmp)
+      {
+        TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
         TDCcorrections[i]->SetDirectory(dir);
-      } else {
+      }
+      else
+      {
         TDCcorrections[i] = nullptr;
       }
     }
 
-    if (debugMode) {
+    if (debugMode)
+    {
       cerr << "Loaded TDC nonlinearity corrections." << endl;
     }
-
-  } else {
-    if (debugMode) {
-      cerr << "The TDC calibration file " << calibFile
-           << " could not be properly opened." << endl;
+  }
+  else
+  {
+    if (debugMode)
+    {
+      cerr << "The TDC calibration file " << calibFile << " could not be properly opened." << endl;
       cerr << "TDC nonlinearity correction will not be used!" << endl;
     }
 
@@ -615,11 +672,15 @@ bool Unpacker2::loadTDCcalibFile(const char *calibFile) {
   return true;
 }
 
-size_t Unpacker2::getDataSize() {
-  if (invertBytes == false) {
-    return (size_t)(((SubEventHdr *)subPHdr)->size - 16);
-  } else {
-    return (size_t)(ReverseHex(((SubEventHdr *)subPHdr)->size) - 16);
+size_t Unpacker2::getDataSize()
+{
+  if (invertBytes == false)
+  {
+    return (size_t)(((SubEventHdr*)subPHdr)->size - 16);
+  }
+  else
+  {
+    return (size_t)(ReverseHex(((SubEventHdr*)subPHdr)->size) - 16);
   }
 
   return -1;
@@ -629,14 +690,15 @@ std::string Unpacker2::getHubAddress()
 {
   string s = "0000";
   stringstream sstream;
-  if (invertBytes == false) {
-    sstream << hex << ((SubEventHdr *)subPHdr)->hubAddress;
-  } else {
-    sstream << hex << ReverseHex((UInt_t)((SubEventHdr *)subPHdr)->hubAddress);
+  if (invertBytes == false)
+  {
+    sstream << hex << ((SubEventHdr*)subPHdr)->hubAddress;
   }
-  s = s.replace(
-    4 - sstream.str().length(), sstream.str().length(), sstream.str()
-  );
+  else
+  {
+    sstream << hex << ReverseHex((UInt_t)((SubEventHdr*)subPHdr)->hubAddress);
+  }
+  s = s.replace(4 - sstream.str().length(), sstream.str().length(), sstream.str());
 
   return s;
 }
