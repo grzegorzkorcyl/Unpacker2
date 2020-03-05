@@ -17,7 +17,14 @@ public:
 protected:
   void ParseConfigFile();
   void DistributeEventsSingleStep();
-  void BuildEvent(EventIII* e, std::map<UInt_t, std::vector<UInt_t> >* m, std::map<UInt_t, double>* refTimes);
+  void BuildEvent(
+    EventIII* e, std::map<UInt_t, std::vector<UInt_t> >* m,
+    std::map<UInt_t, double>* refTimes
+  );
+
+  // const double kCoarseConstant = 2.6667;
+  const double kCoarseConstant = 2.7027027027;
+  const double kFineConstant = 0.02111484375;
 };
 
 #endif
