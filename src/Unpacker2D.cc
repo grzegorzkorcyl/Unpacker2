@@ -78,9 +78,9 @@ void Unpacker2D::BuildEvent(
 
       if (useTDCcorrection) {
         time = coarse * kCoarseConstant
-          + ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)) / 1000.0);
+          - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)) / 1000.0);
       } else {
-        time = coarse * kCoarseConstant + fine * kFineConstant;
+        time = coarse * kCoarseConstant - fine * kFineConstant;
       }
 
       refTime = refTimes->find((int)((m_it->first - 2100) / 105) * 105 + 2100)->second;
@@ -388,11 +388,12 @@ void Unpacker2D::DistributeEventsSingleStep()
 
 						if (channel == 104) {
 							if (useTDCcorrection == true) {
-								refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * kCoarseConstant) + ((TDCcorrections[channel
+								refTimes[currentOffset] =
+                  (((data4 >> 8) & 0xffff) * kCoarseConstant) - ((TDCcorrections[channel
 												+ currentOffset]->GetBinContent((data4 & 0xff) + 1)) / 1000.0);
 								refTimesCtr++;
 							}	else {
-								refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * kCoarseConstant) + ((data4 & 0xff) * kFineConstant);
+								refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * kCoarseConstant) - ((data4 & 0xff) * kFineConstant);
 								refTimesCtr++;
 							}
 						}	else {
@@ -436,7 +437,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 						if (refTimesCtrPrevious == ENDPOINTS) {
 							trgSequenceHold = false;
 						}
-            
+
 					}	else {
 						skip++;
 						h_errors->Fill(1); // missing ref time
