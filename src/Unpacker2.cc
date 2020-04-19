@@ -19,24 +19,6 @@ string UIntToString(UInt_t t)
   return s;
 }
 
-UInt_t ReverseHex(UInt_t n)
-{
-  UInt_t a, b, c, d, e;
-  a = n & 0x000000ff;
-  b = n & 0x0000ff00;
-  c = n & 0x00ff0000;
-  d = n & 0xff000000;
-
-  a <<= 24;
-  b <<= 8;
-  c >>= 8;
-  d >>= 24;
-
-  e = a | b | c | d;
-
-  return e;
-}
-
 Unpacker2::Unpacker2() { Init(); }
 
 void Unpacker2::Init()
@@ -56,9 +38,11 @@ void Unpacker2::Init()
   fileSize = 0;
 }
 
-void Unpacker2::UnpackSingleStep(string inputFile, std::string inputPath, std::string outputPath, string configFile, int numberOfEvents,
-                                 int refChannelOffset, string totCalibFile, string tdcCalibFile)
-{
+void Unpacker2::UnpackSingleStep(
+  const string& inputFile, const string& inputPath, const string& outputPath,
+  const string& configFile, int numberOfEvents, int refChannelOffset,
+  const string& totCalibFile, const string& tdcCalibFile
+) {
 
   fInputFile = inputFile;
   fInputFilePath = inputPath;
@@ -672,7 +656,7 @@ bool Unpacker2::loadTDCcalibFile(const char* calibFile)
   return true;
 }
 
-size_t Unpacker2::getDataSize()
+size_t Unpacker2::getDataSize() const
 {
   if (invertBytes == false)
   {
@@ -703,7 +687,7 @@ std::string Unpacker2::getHubAddress()
   return s;
 }
 
-size_t Unpacker2::ReverseHex(size_t n)
+size_t Unpacker2::ReverseHex(size_t n) const
 {
   size_t a, b, c, d, e;
   a = n & 0x000000ff;
