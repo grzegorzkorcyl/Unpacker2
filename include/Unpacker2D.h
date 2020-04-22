@@ -23,7 +23,8 @@ protected:
   );
 
   // const double kCoarseConstant = 2.6667;
-  const double kCoarseConstant = 2.7027027027;
+  // const double kCoarseConstant = 2.7027027027;
+  const double kCoarseConstant = 2.5;
   const double kFineConstant = 0.02111484375;
 };
 
