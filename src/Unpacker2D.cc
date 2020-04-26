@@ -14,7 +14,7 @@
 //####################################
 // DEFINE THE NUMBER OF ENDPOINTS
 //####################################
-#define ENDPOINTS 4
+// #define ENDPOINTS 4
 
 using namespace std;
 
@@ -181,14 +181,14 @@ void Unpacker2D::ParseConfigFile()
 
 void Unpacker2D::UnpackSingleStep(
   string inputFile, string inputPath, string outputPath, string configFile,
-  int numberOfEvents, int refChannelOffset, string totCalibFile, std::string tdcCalibFile
+  int numberOfEvents, int refChannelOffset, std::string tdcCalibFile, int endpoints
 ) {
   fInputFile = inputFile;
   fInputFilePath = inputPath;
   fOutputFilePath = outputPath;
   fConfigFile = configFile;
-  fTOTCalibFile = totCalibFile;
   fTDCCalibFile = tdcCalibFile;
+  fEndpoints = endpoints;
   fEventsToAnalyze = numberOfEvents;
   fRefChannelOffset = refChannelOffset;
   ParseConfigFile();
@@ -405,7 +405,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 
         if (queueSize < 4) {
 					if (queueSize == 1)	file->ignore(4);
-					if (refTimesCtr == ENDPOINTS) {
+					if (refTimesCtr == fEndpoints) {
 						if (nEvents > 0) {
 							if (!missing_ref && (ftabTrgn - prevTrgId) == 1
                 && trgSequence && !trgSequenceHold
@@ -434,7 +434,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 							trgSequence = false;
 						}
 
-						if (refTimesCtrPrevious == ENDPOINTS) {
+						if (refTimesCtrPrevious == fEndpoints) {
 							trgSequenceHold = false;
 						}
 
