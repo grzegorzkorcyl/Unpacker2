@@ -30,7 +30,7 @@ jobs:
       run: |
         source root/bin/thisroot.sh
         cd build
-        make --j4
+        make
         ctest
     - name: run pseudotests 
       run: |
