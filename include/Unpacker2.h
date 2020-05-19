@@ -1,60 +1,36 @@
 #ifndef Unpacker2_h
 #define Unpacker2_h
 
-#include <TTree.h>
+#include "EventIII.h"
 #include <TFile.h>
+#include <TH1F.h>
 #include <TObject.h>
 #include <TObjectTable.h>
-#include <TH1F.h>
-#include <string>
-#include "EventIII.h"
+#include <TTree.h>
 #include <map>
+#include <string>
 
 #define REF_CHANNELS_NUMBER 50
 
-class Unpacker2 : public TObject {
-  
-private:
-  
-  std::map<UInt_t, UInt_t> tdc_offsets;
-  
-  int eventsToAnalyze;
-  
-  bool useTDCcorrection = false;
-  
-  size_t reverseHex(size_t n);
+class Unpacker2 : public TObject
+{
 
-  bool areBytesToBeInverted(std::string);
-  bool invertBytes;
-  bool fullSetup;
-  
-  bool debugMode;
-  
-  long int fileSize;
-
-  int refChannelOffset;
-  TH1F * TOTcalibHist = nullptr;
-  int highest_channel_number = -1;
-  TH1F ** TDCcorrections = nullptr;
-
-  const static int kMaxAllowedRepetitions = 1;
-  
 public:
-
   Unpacker2();
   ~Unpacker2() {}
-
   void Init();
-  void UnpackSingleStep(const char* hldFile, const char* configFile, int numberOfEvents,
-			int refChannelOffset, const char* TOTcalibFile, const char* TDCcalibFile);
-    
-  TH1F * loadCalibHisto(const char* calibFile);
+  void UnpackSingleStep(
+    const std::string& inputFile, const std::string& inputPath,
+    const std::string& outputPath, const std::string& configFile,
+    int numberOfEvents, int refChannelOffset,
+    const std::string& TOTcalibFile, const std::string& TDCcalibFile
+  );
+
+  TH1F* loadCalibHisto(const char* calibFile);
   bool loadTDCcalibFile(const char* calibFile);
-  
-  void ParseConfigFile(std::string f, std::string s);
-  void DistributeEventsSingleStep(std::string file);
-    
-  struct EventHdr {
+
+  struct EventHdr
+  {
     UInt_t fullSize;
     UInt_t decoding;
     UInt_t id;
@@ -64,31 +40,54 @@ public:
     UInt_t runNr;
     UInt_t pad;
   } hdr;
-  
-  struct SubEventHdr {
+
+  struct SubEventHdr
+  {
     UInt_t size;
     UInt_t decoding;
     UInt_t hubAddress;
     UInt_t trgNr;
   } subHdr;
-  
+
   UInt_t* pHdr;
   UInt_t* subPHdr;
-  
-  size_t getSubHdrSize()    const { return sizeof(SubEventHdr); }
-  size_t getHdrSize()    const { return sizeof(EventHdr); }
-  UInt_t getFullSize()   const { return ((EventHdr*)pHdr)->fullSize; }
-  size_t getDataSize();
+
+
+protected:
+  void ParseConfigFile();
+  void DistributeEventsSingleStep();
   std::string getHubAddress();
-  size_t getDataLen()    const { return ((getFullSize() - getHdrSize()) + 3) / 4; }
+  size_t getHdrSize() const { return sizeof(EventHdr); }
+  size_t getSubHdrSize() const { return sizeof(SubEventHdr); }
+  UInt_t getFullSize() const { return ((EventHdr*)pHdr)->fullSize; }
+  size_t getDataSize() const;
+  size_t getDataLen() const { return ((getFullSize() - getHdrSize()) + 3) / 4; }
   size_t align8(const size_t i) const { return 8 * size_t((i - 1) / 8 + 1); }
   size_t getPaddedSize() { return align8(getDataSize()); }
   size_t getPaddedEventSize() { return align8(getFullSize()); }
-  
-  size_t ReverseHex(size_t n);
-    
+  size_t ReverseHex(size_t n) const;
+
+  std::string fInputFile;
+  std::string fInputFilePath;
+  std::string fOutputFilePath;
+  std::string fConfigFile;
+  std::string fTOTCalibFile;
+  std::string fTDCCalibFile;
+  std::map<UInt_t, UInt_t> tdc_offsets;
+  int highest_channel_number = -1;
+  TH1F** TDCcorrections = nullptr;
+  bool useTDCcorrection = false;
+  TH1F* TOTcalibHist = nullptr;
+  int fRefChannelOffset;
+  int fEventsToAnalyze;
+  bool debugMode;
+
+private:
+  bool areBytesToBeInverted();
+  const static int kMaxAllowedRepetitions = 1;
+  long int fileSize;
+  bool invertBytes;
+  bool fullSetup;
 };
-
-
 
 #endif
