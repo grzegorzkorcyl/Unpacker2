@@ -11,11 +11,6 @@
 #include <vector>
 #include <map>
 
-//####################################
-// DEFINE THE NUMBER OF ENDPOINTS
-//####################################
-// #define ENDPOINTS 4
-
 using namespace std;
 
 UInt_t ReverseHexDJ(UInt_t n)
@@ -78,9 +73,9 @@ void Unpacker2D::BuildEvent(
 
       if (useTDCcorrection) {
         time = coarse * kCoarseConstant
-          - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)) / 1000.0);
+          - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)));
       } else {
-        time = coarse * kCoarseConstant - fine * kFineConstant;
+        time = coarse * kCoarseConstant - (fine-4) * kFineConstant;
       }
 
       refTime = refTimes->find((int)((m_it->first - 2100) / 105) * 105 + 2100)->second;
@@ -181,14 +176,13 @@ void Unpacker2D::ParseConfigFile()
 
 void Unpacker2D::UnpackSingleStep(
   string inputFile, string inputPath, string outputPath, string configFile,
-  int numberOfEvents, int refChannelOffset, std::string tdcCalibFile, int endpoints
+  int numberOfEvents, int refChannelOffset, std::string tdcCalibFile
 ) {
   fInputFile = inputFile;
   fInputFilePath = inputPath;
   fOutputFilePath = outputPath;
   fConfigFile = configFile;
   fTDCCalibFile = tdcCalibFile;
-  fEndpoints = endpoints;
   fEventsToAnalyze = numberOfEvents;
   fRefChannelOffset = refChannelOffset;
   ParseConfigFile();
@@ -259,8 +253,10 @@ void Unpacker2D::DistributeEventsSingleStep()
 
     unsigned int packet_buf[1024];
     int packet_buf_ctr = 0;
+    int activeFTABs = 0;
 
     while (!file->eof()) {
+      activeFTABs = 0;
       nBytes = 0;
       if (nEvents % 10000 == 0) {
         std::cout << std::string(30, '\b');
@@ -330,7 +326,7 @@ void Unpacker2D::DistributeEventsSingleStep()
         data4 = ReverseHexDJ(data4);
         ftabSize = data4 >> 16;
         ftabId = data4 & 0xffff;
-
+        activeFTABs++;
 				ftabWords = ftabSize - 2;
 
         // ftab trigger number and debug
@@ -389,11 +385,13 @@ void Unpacker2D::DistributeEventsSingleStep()
 						if (channel == 104) {
 							if (useTDCcorrection == true) {
 								refTimes[currentOffset] =
-                  (((data4 >> 8) & 0xffff) * kCoarseConstant) - ((TDCcorrections[channel
-												+ currentOffset]->GetBinContent((data4 & 0xff) + 1)) / 1000.0);
+                  (((data4 >> 8) & 0xffff) * kCoarseConstant)
+                  - ((TDCcorrections[channel+currentOffset]
+                    ->GetBinContent((data4 & 0xff) + 1)));
 								refTimesCtr++;
 							}	else {
-								refTimes[currentOffset] = (((data4 >> 8) & 0xffff) * kCoarseConstant) - ((data4 & 0xff) * kFineConstant);
+								refTimes[currentOffset] =
+                  (((data4 >> 8) & 0xffff) * kCoarseConstant) - (((data4 & 0xff)-4) * kFineConstant);
 								refTimesCtr++;
 							}
 						}	else {
@@ -405,7 +403,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 
         if (queueSize < 4) {
 					if (queueSize == 1)	file->ignore(4);
-					if (refTimesCtr == fEndpoints) {
+					if (refTimesCtr == activeFTABs) {
 						if (nEvents > 0) {
 							if (!missing_ref && (ftabTrgn - prevTrgId) == 1
                 && trgSequence && !trgSequenceHold
@@ -434,7 +432,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 							trgSequence = false;
 						}
 
-						if (refTimesCtrPrevious == fEndpoints) {
+						if (refTimesCtrPrevious == activeFTABs) {
 							trgSequenceHold = false;
 						}
 

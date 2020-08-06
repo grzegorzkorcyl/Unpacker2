@@ -11,7 +11,7 @@ public:
   void UnpackSingleStep(
     std::string inputFile, std::string inputPath, std::string outputPath,
     std::string configFile, int numberOfEvents, int refChannelOffset,
-    std::string TDCcalibFile, int endpoints
+    std::string TDCcalibFile
   );
 
 protected:
@@ -26,7 +26,6 @@ protected:
   // const double kCoarseConstant = 2.7027027027;
   const double kCoarseConstant = 2.5;
   const double kFineConstant = 0.02111484375;
-  int fEndpoints = 2;
 };
 
 #endif
