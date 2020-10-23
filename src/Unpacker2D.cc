@@ -50,7 +50,7 @@ UInt_t ReverseHexTDC(UInt_t n)
 }
 
 void Unpacker2D::BuildEvent(
-  EventIII* e, map<UInt_t, vector<UInt_t>>* m, map<UInt_t, double>* refTimes
+  EventIII* e, std::map<UInt_t, std::vector<UInt_t> >* m, std::map<UInt_t, UInt_t>* refTimes
 ){
   UInt_t data;
   UInt_t fine;
@@ -60,25 +60,44 @@ void Unpacker2D::BuildEvent(
   double time = 0;
 	double time_t = 0;
 
+	map<UInt_t, double> refTimes_local;
+
+  // copy reference channels into the tree
+	map<UInt_t, UInt_t>::iterator ref_it;
+	for(ref_it = refTimes->begin(); ref_it != refTimes->end(); ref_it++) {
+
+    TDCChannel* tc = e->AddTDCChannel(104 + ref_it->first);
+		data = ref_it->second;
+    fine = data & 0x7f;
+    coarse = (data >> 8) & 0xffff;
+
+    if (useTDCcorrection){
+      time = (coarse * 2.5) - ((TDCcorrections[ref_it->first]->GetBinContent(fine + 1)));
+    }	else {
+      time = (coarse * 2.5) - ( (fine - 4) * 0.0201612903 );
+    }
+
+		tc->AddLead(time);
+		refTimes_local[ref_it->first] = time;
+	}
+
   map<UInt_t, vector<UInt_t>>::iterator m_it;
   for (m_it = m->begin(); m_it != m->end(); m_it++) {
+
     TDCChannel* tc = e->AddTDCChannel(m_it->first);
+
     for (int i = 0; i < m_it->second.size(); i++) {
-
+      refTime = refTimes_local.find((int)((m_it->first - 2100) / 105) * 105 + 2100)->second;
       data = m_it->second[i];
-
-      fine = data & 0xff;
-      coarse = (data >> 8) & 0xffff;
-      rising = (data >> 31);
+      fine = data & 0x7f;
+			coarse = (data >> 8) & 0xffff;
+			rising = (data >> 31);
 
       if (useTDCcorrection) {
-        time = coarse * kCoarseConstant
-          - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)));
+        time = coarse * kCoarseConstant - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)));
       } else {
         time = coarse * kCoarseConstant - (fine-4) * kFineConstant;
       }
-
-      refTime = refTimes->find((int)((m_it->first - 2100) / 105) * 105 + 2100)->second;
 
       if (rising == 0) {
         if (time - refTime < 0) {
@@ -121,7 +140,7 @@ void Unpacker2D::ParseConfigFile()
     exit(0);
   }
 
-  if (debugMode == true)  cerr << "DEBUG mode on" << endl;
+  if (debugMode)  cerr << "DEBUG mode on" << endl;
 
   // get the first data source entry in the config file
   boost::property_tree::ptree readoutTree = tree.get_child("READOUT");
@@ -194,275 +213,251 @@ void Unpacker2D::UnpackSingleStep(
   DistributeEventsSingleStep();
 }
 
+bool Unpacker2D::loadTDCcalibFile(const char* calibFile) {
+	TFile* f = new TFile(calibFile, "READ");
+	TDirectory* dir = gDirectory->GetDirectory("Rint:/");
+
+	if (f->IsOpen()) {
+		TDCcorrections = new TH1F*[highest_channel_number];
+		for (int i=2100;i<highest_channel_number;i++) {
+			TH1F* tmp = dynamic_cast<TH1F*>(f->Get(Form("correction%d", i)));
+			if (tmp) {
+				TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
+				TDCcorrections[i]->SetDirectory(dir);
+			} else {
+				TDCcorrections[i] = nullptr;
+			}
+		}
+
+		if(debugMode) {
+		  cerr << "Loaded TDC nonlinearity corrections." << endl;
+    }
+  }else{
+    if(debugMode){
+      cerr << "The TDC calibration file " << calibFile << " could not be properly opened." << endl;
+			cerr << "TDC nonlinearity correction will not be used!" << endl;
+    }
+		f->Close();
+		delete f;
+		return false;
+	}
+	f->Close();
+	delete f;
+	return true;
+}
+
 void Unpacker2D::DistributeEventsSingleStep()
 {
-
   string fileName = fInputFilePath + fInputFile;
   ifstream* file = new ifstream(fileName.c_str());
 
   if (file->is_open()) {
 
-    EventIII* eventIII = new EventIII();
+		EventIII* eventIII = new EventIII();
+		string newFileName = fileName + ".root";
+		TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
+		TTree* newTree = new TTree("T", "Tree");
+		newTree->Branch("eventIII", "EventIII", &eventIII, 64000, 99);
 
-    string newFileName = fOutputFilePath + fInputFile + ".root";
-    TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
-    TTree* newTree = new TTree("T", "Tree");
-
-    newTree->Branch("eventIII", "EventIII", &eventIII, 64000, 99);
-
-    TH1F* wrongFtabID = new TH1F("wrong_ftab_id", "Wrong FTAB IDs", 70000, 0.5, 70000.05);
-    TH1F* h_errors = new TH1F("h_errors", "h_errors", 10, 0, 10);
-		TH1F* h_ts_width = new TH1F("h_ts_width", "h_ts_width", 10000, 0, 1000000);
-		TH1F* h_ts_diff = new TH1F("h_ts_diff", "h_ts_diff", 100000, -250, 250);
-		TH1F* h_coarse = new TH1F("h_coarse", "h_coarse", 65535, 0, 65535);
-		TH1F* h_fine = new TH1F("h_fine", "h_fine", 128, 0, 128);
-
-    UInt_t data4;
-    Int_t nBytes;
-    UInt_t nEvents = 0;
-    UInt_t queueSize = 0;
-    UInt_t queueDecoding = 0;
-    UInt_t subSize = 0;
-    UInt_t subDecoding = 0;
-    UInt_t ftabId = 0;
-    UInt_t ftabSize = 0;
-    UInt_t ftabTrgn = 0;
-    UInt_t ftabDbg = 0;
-    UInt_t dataCtr = 0;
-    UInt_t channel = 0;
-    UInt_t currentOffset = 0;
-    UInt_t ftabWords = 0;
-		UInt_t badIdCtr = 0;
+		UInt_t data4;
+		UInt_t nEvents = 0;
+		UInt_t eventSize = 0;
+		UInt_t queueSize = 0;
+		UInt_t subDecoding = 0;
+		UInt_t trgId = 0;
+		UInt_t concId = 0;
+		UInt_t ftabId = 0;
+		UInt_t ftabSize = 0;
+		UInt_t ftabTrgn = 0;
+		UInt_t ftabDbg = 0;
+		UInt_t dataCtr = 0;
+		UInt_t channel = 0;
+		UInt_t currentOffset = 0;
+		UInt_t ftabWords = 0;
     UInt_t prevTrgId = 0;
-    bool trgSequence = false;
+    UInt_t prevSTrgId = 0;
+
+		map<UInt_t, UInt_t>::iterator offsets_it;
+		map<UInt_t, vector<UInt_t> > tdc_channels;
+		map<UInt_t, UInt_t> refTimes;
+		map<UInt_t, UInt_t> refTimes_previous;
+
+		bool trgSequence = false;
 		bool trgSequenceHold = false;
-    int built = 0;
-    int skip = 0;
     bool missing_ref = false;
-		int refTimesCtr = 0;
-		int refTimesCtrPrevious = 0;
-		int missingRefCtr = 0;
+    bool badIdSkip = false;
 
-    map<UInt_t, UInt_t>::iterator offsets_it;
-    map<UInt_t, vector<UInt_t>> tdc_channels;
-    map<UInt_t, double> refTimes;
-    map<UInt_t, double> refTimes_previous;
+		int built = 0;
+		int skip = 0;
+    int missingRefCtr = 0;
+    int badIdCtr = 0;
 
-    // skip the first entry
-    file->ignore(32);
+		short endpointsCtr = 0;
+		short refTimesCtr = 0;
 
-    unsigned int packet_buf[1024];
-    int packet_buf_ctr = 0;
-    int activeFTABs = 0;
+		// skip the first entry (EB file headers)
+		file->ignore(32);
 
-    while (!file->eof()) {
-      activeFTABs = 0;
-      nBytes = 0;
-      if (nEvents % 10000 == 0) {
-        std::cout << std::string(30, '\b');
-        std::cout << std::string(30, ' ');
-        std::cout << '\r' << "Unpacker2D: " << nEvents << " time slots unpacked " << std::flush;
-      }
+		while(!file->eof()) {
+			if (nEvents % 10000 == 0) {
+				printf("%d\n", nEvents);
+			}
+			eventIII->Clear();
 
-      eventIII->Clear();
+		  // EVENT HEADERS FROM EB
+			// size
+			file->read((char*) & data4, 4);
+			eventSize = data4 / 4; // in 32b words
 
-      // queue headers
-      // size
-      file->read((char*)&data4, 4);
-      nBytes += 4;
-      queueSize = data4 / 4;
+			// skip bad entries
+			if (eventSize < 0x10) {
+				file->ignore(28);
+				newTree->Fill();
+				continue;
+			}
 
-      nEvents++;
+			// skip event headers
+			file->ignore(7 * 4);
 
-      // skip bad entries
-      if (queueSize < 0x10) {
-        file->ignore(28);
-        nBytes += 28;
-        if (debugMode) {
-          printf("Skipping too small queue\n");
-        }
-        h_errors->Fill(2);
-        newTree->Fill();
-        continue;
-      }
+		  //*****************
+		  //  LOOP OVER CONCENTRATORS IN THE QUEUE
+		  //*****************
+			while(!file->eof()) {
+			  // QUEUE FROM CONCENTRATOR SIZE
+				file->read((char*) &data4, 4);
+				data4 = ReverseHex(data4);
+				queueSize = data4 / 4; // queue size in 32 bit words
+				eventSize -= queueSize;
+				file->ignore(4); // queue decoding
 
-      // decoding
-      file->read((char*)&data4, 4);
-      nBytes += 4;
-      queueDecoding = data4;
+			  // CONCENTRATOR ID
+				file->read((char*) &data4, 4);
+				data4 = ReverseHex(data4);
+				concId = data4;
+				queueSize--;
 
-      // skip some headers
-      file->ignore(8);
-      nBytes += 8;
+			  // TRIGGER NUMBER FROM CONCENTRATOR
+				file->read((char*) &data4, 4);
+				data4 = ReverseHex(data4);
+				trgId = data4;
+				queueSize--;
+				endpointsCtr = 0;
+				refTimesCtr = 0;
 
-      // subevent
-      // sub size
-      file->read((char*)&data4, 4);
-      nBytes += 4;
-      subSize = data4 & 0xffff;
+			  //*****************
+			  // LOOP OVER FTABS FROM CONCENTRATOR
+			  //*****************
+				while(!file->eof()) {
 
-      // sub decoding
-      file->read((char*)&data4, 4);
-      nBytes += 4;
-      subDecoding = data4;
-
-      // skip some headers
-      file->ignore(24);
-      nBytes += 24;
-
-      queueSize -= 12;
-
-      refTimesCtrPrevious = refTimesCtr;
-			refTimesCtr = 0;
-			packet_buf_ctr = 0;
-			prevTrgId = ftabTrgn;
-
-      while (!file->eof()) {
-        // ftab header
-        // ftab size and id
-        file->read((char*)&data4, 4);
-        nBytes += 4;
-
-        data4 = ReverseHexDJ(data4);
-        ftabSize = data4 >> 16;
-        ftabId = data4 & 0xffff;
-        activeFTABs++;
-				ftabWords = ftabSize - 2;
-
-        // ftab trigger number and debug
-        file->read((char*)&data4, 4);
-        nBytes += 4;
-        data4 = ReverseHexDJ(data4);
-        ftabDbg = data4 >> 16;
-        ftabTrgn = data4 & 0xffff;
-        queueSize -= 2;
-
-        offsets_it = tdc_offsets.find(ftabId);
-        if (offsets_it == tdc_offsets.end()) {
-          wrongFtabID->Fill(ftabId);
-          h_errors->Fill(3);
-          file->ignore((ftabSize - 2) * 4);
-          nBytes += (ftabSize - 2) * 4;
-          queueSize -= ftabSize - 2;
-          badIdCtr++;
-          trgSequence = false;
-          if (queueSize == 0) {
-            break;
-          } else if (queueSize == 1) {
-            file->ignore(4); nBytes += 4; queueSize -= 1; break;
-          }
-          continue;
-        }
-
-        currentOffset = offsets_it->second;
-
-        if (nEvents > 0) {
-          refTimes_previous[currentOffset] = refTimes[currentOffset];
-        }
-
-        // ftab data
-        while (!file->eof()) {
-					file->read((char*)&data4, 4);
-					nBytes += 4;
+				  // FTAB HEADERS ID AND SIZE
+					file->read((char*) &data4, 4);
+					data4 = ReverseHexDJ(data4);
+					ftabSize = data4 >> 16;
+					ftabId = data4 & 0xffff;
 					queueSize--;
-					data4 = ReverseHexTDC(data4);
+					endpointsCtr += 1;
+					ftabWords = ftabSize - 2;
 
-					ftabWords--;
+				  // FTAB TRG NR
+					file->read((char*) &data4, 4);
+					data4 = ReverseHexDJ(data4);
+					ftabTrgn = data4 & 0xffff;
+					queueSize--;
+					offsets_it = tdc_offsets.find(ftabId);
+					badIdSkip = false;
 
-					if (ftabWords == 1) {
+				  // MISSING FTAB ID
+					if (offsets_it == tdc_offsets.end()) {
+						badIdSkip = true;
+						badIdCtr++;
+					}
+					currentOffset = offsets_it->second;
+
+					if (nEvents > 0) {
+						refTimes_previous[currentOffset] = refTimes[currentOffset];
+					}
+
+					bool gotRef = false;
+
+			    //*****************
+			    // LOOP OVER DATA FROM FTAB
+			    //*****************
+					while(!file->eof()) {
 						file->read((char*)&data4, 4);
-						nBytes += 4;
+						data4 = ReverseHexTDC(data4);
 						queueSize--;
+						ftabWords--;
+
+						if (ftabWords == 1) {
+							file->read((char*)&data4, 4);
+							file->read((char*)&data4, 4);
+
+							if (data4 == 0x05050505) {
+                // padding found
+								queueSize -= 2;
+								break;
+							} else {
+                // regular ending
+								file->seekg(file->tellg() - 4);
+								queueSize--;
+								break;
+							}
+						}
+
+					  // FTAB TDC HIT
+						if ((data4 >> 24) != 0xfc) {
+							channel = (data4 >> 24) & 0x7f;
+							if (channel == 104) {
+                // reference channel
+								refTimes[currentOffset] = data4;
+								gotRef = true;
+								refTimesCtr++;
+							} else {
+                // regular channel
+								tdc_channels[channel + currentOffset].push_back(data4);
+							}
+						}
+					}
+
+					if (!gotRef) {
+						missingRefCtr++;
+					}
+
+					// conditions to exit the current conc
+					if (queueSize <= 4) {
 						break;
 					}
+				} // loop over ftabs in queue
 
-					if ((data4 >> 24) != 0xfc) {
-						channel = (data4 >> 24) & 0x7f;
-
-						h_coarse->Fill((data4 >> 8) & 0xffff);
-						h_fine->Fill(data4 & 0xff);
-
-						if (channel == 104) {
-							if (useTDCcorrection == true) {
-								refTimes[currentOffset] =
-                  (((data4 >> 8) & 0xffff) * kCoarseConstant)
-                  - ((TDCcorrections[channel+currentOffset]
-                    ->GetBinContent((data4 & 0xff) + 1)));
-								refTimesCtr++;
-							}	else {
-								refTimes[currentOffset] =
-                  (((data4 >> 8) & 0xffff) * kCoarseConstant) - (((data4 & 0xff)-4) * kFineConstant);
-								refTimesCtr++;
-							}
-						}	else {
-							tdc_channels[channel + currentOffset].push_back(data4);
-						}
-					}
-					dataCtr++;
-				}
-
-        if (queueSize < 4) {
-					if (queueSize == 1)	file->ignore(4);
-					if (refTimesCtr == activeFTABs) {
-						if (nEvents > 0) {
-							if (!missing_ref && (ftabTrgn - prevTrgId) == 1
-                && trgSequence && !trgSequenceHold
-              ) {
-								h_ts_diff->Fill((refTimes[2100] - refTimes[2205]) - (refTimes_previous[2100] - refTimes_previous[2205]));
-								h_ts_width->Fill(refTimes[2100] - refTimes_previous[2100]);
-								map<UInt_t, double>::iterator ref_it = refTimes_previous.begin();
-								while(ref_it != refTimes_previous.end()) {
-									TDCChannel* tc = eventIII->AddTDCChannel(channel + ref_it->first);
-									tc->AddLead(refTimes_previous[ref_it->first]);
-									ref_it++;
-								}
-                built++;
-								BuildEvent(eventIII, &tdc_channels, &refTimes_previous);
-								h_errors->Fill(0); // event ok
-								trgSequence = true;
-							}	else {
-								skip++;
-							}
-							missing_ref = false;
-						}
-
-						if ((ftabTrgn - prevTrgId) == 1) {
-							trgSequence = true;
-						}	else if((ftabTrgn - prevTrgId) != 1) {
-							trgSequence = false;
-						}
-
-						if (refTimesCtrPrevious == activeFTABs) {
-							trgSequenceHold = false;
-						}
-
-					}	else {
-						skip++;
-						h_errors->Fill(1); // missing ref time
-						missing_ref = true;
-						missingRefCtr++;
-						trgSequenceHold = true;
-						trgSequence = false;
-					}
-
-					tdc_channels.clear();
+				if (eventSize <= 8) {
 					break;
 				}
-      }
-			newTree->Fill();
-      if (nEvents == fEventsToAnalyze) {
-        printf("Max timeslots reached\n");
-        break;
-      }
-    }
-    h_fine->Write();
-		h_coarse->Write();
-		h_errors->Write();
-    wrongFtabID->Write();
-    newFile->Write();
-    delete newTree;
-    file->close();
-  } else {
-    cerr << "ERROR: failed to open data file" << endl;
+
+			} // end of loop over concs in queue
+
+			if (!badIdSkip && endpointsCtr == refTimesCtr) {
+				// copy all times into the tree
+				BuildEvent(eventIII, &tdc_channels, &refTimes_previous);
+				newTree->Fill();
+			}
+
+			tdc_channels.clear();
+
+			if (nEvents == fEventsToAnalyze) {
+				printf("Max timeslots reached\n");
+				break;
+			}
+
+		} // end of loop over events
+
+		printf("\n\nEvents with missing ref hits: %d\n", missingRefCtr);
+		printf("Bad endpoint ID: %d\n", badIdCtr);
+
+		newFile->Write();
+		delete newTree;
+		file->close();
+
+	} else {
+    cerr<<"ERROR: failed to open data file"<<endl;
   }
 }
