@@ -306,8 +306,10 @@ void Unpacker2D::DistributeEventsSingleStep()
 
 		  // EVENT HEADERS FROM EB
 			// size
-			file->read((char*) & data4, 4);
+			file->read((char*) &data4, 4);
 			eventSize = data4 / 4; // in 32b words
+
+			nEvents++;
 
 			// skip bad entries
 			if (eventSize < 0x10) {
@@ -389,8 +391,8 @@ void Unpacker2D::DistributeEventsSingleStep()
 						ftabWords--;
 
 						if (ftabWords == 1) {
-							file->read((char*)&data4, 4);
-							file->read((char*)&data4, 4);
+							file->read((char*) &data4, 4);
+							file->read((char*) &data4, 4);
 
 							if (data4 == 0x05050505) {
                 // padding found
@@ -423,7 +425,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 						missingRefCtr++;
 					}
 
-					// conditions to exit the current conc
+					// conditions to exit the current concentrator
 					if (queueSize <= 4) {
 						break;
 					}
@@ -433,7 +435,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 					break;
 				}
 
-			} // end of loop over concs in queue
+			} // end of loop over concentrator in queue
 
 			if (!badIdSkip && endpointsCtr == refTimesCtr) {
 				// copy all times into the tree
@@ -450,8 +452,8 @@ void Unpacker2D::DistributeEventsSingleStep()
 
 		} // end of loop over events
 
-		printf("\n\nEvents with missing ref hits: %d\n", missingRefCtr);
-		printf("Bad endpoint ID: %d\n", badIdCtr);
+		// printf("\n\nEvents with missing ref hits: %d\n", missingRefCtr);
+		// printf("Bad endpoint ID: %d\n", badIdCtr);
 
 		newFile->Write();
 		delete newTree;
