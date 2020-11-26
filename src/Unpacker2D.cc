@@ -152,7 +152,7 @@ void Unpacker2D::ParseConfigFile()
   int channels = 0;
   int offset = 0;
   string measurementType("");
-  highest_channel_number = 0;
+  highest_channel_number = 2100 + 48 * 105;
 
   // iterate through entries and create appropriate unpackers
   for (const auto& readoutEntry : readoutTree) {
@@ -179,11 +179,7 @@ void Unpacker2D::ParseConfigFile()
           channels = (module.second).get<int>("NUMBER_OF_CHANNELS");
           offset = (module.second).get<int>("CHANNEL_OFFSET");
           measurementType = (module.second).get<string>("MEASUREMENT_TYPE");
-
           tdc_offsets[address] = offset;
-          if (offset + channels > highest_channel_number) {
-            highest_channel_number = offset + channels;
-          }
         }
       } else {
         cerr << "Incorrect configuration in the xml file!" << endl;
@@ -375,7 +371,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 					}
 					currentOffset = offsets_it->second;
 
-					if (nEvents > 0) {
+					if (nEvents > 0 && ftabId != 0xffff) {
 						refTimes_previous[currentOffset] = refTimes[currentOffset];
 					}
 
@@ -407,7 +403,7 @@ void Unpacker2D::DistributeEventsSingleStep()
 						}
 
 					  // FTAB TDC HIT
-						if ((data4 >> 24) != 0xfc) {
+						if ((data4 >> 24) != 0xfc && ftabId != 0xffff) {
 							channel = (data4 >> 24) & 0x7f;
 							if (channel == 104) {
                 // reference channel
