@@ -19,7 +19,7 @@ endif()
 # MINOR version when you add functionality in a backwards-compatible manner, and
 # PATCH version when you make backwards-compatible bug fixes.
 
-project(Unpacker2 VERSION 2.0.1
+project(Unpacker2 VERSION 3.0.0
                   LANGUAGES CXX)
 set(PROJECT_DESCRIPTION "Unpacker2 module")
 
@@ -27,7 +27,7 @@ message(STATUS "")
 message(STATUS "    == ${PROJECT_NAME} Project configuration ==")
 message(STATUS "")
 
-set(CMAKE_CXX_STANDARD 11) # maybe not best solution to set it globally? upgrate minimal cmake version to 3.8 or find another way to set it only for target with interface
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
@@ -97,18 +97,22 @@ if(ROOT_VERSION VERSION_LESS "6.10")
   message(FATAL_ERROR "Only ROOT >= 6.10 is currently supported")
 endif(ROOT_VERSION VERSION_LESS "6.10")
 
-if(EXISTS "${ROOT_DIR}/modules/RootNewMacros.cmake")
-  include("${ROOT_DIR}/modules/RootNewMacros.cmake")
-  message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/modules!")
-elseif(EXISTS "${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")
-  include("${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")
-  message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/cmake/modules!")
-elseif(EXISTS "${ROOT_DIR}/../cmake/modules/RootNewMacros.cmake")
-  include("${ROOT_DIR}/../cmake/modules/RootNewMacros.cmake")
-  message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/../cmake/modules!")
-else()
-  message("ERROR! Could not find RootNewMacros.cmake file! Aborting..")
-  return(1)
+# the RootNewMacros.cmake file has to be found and included manually
+# only for ROOT versions prior to 6.20
+if(ROOT_VERSION VERSION_LESS "6.20")
+  if(EXISTS "${ROOT_DIR}/modules/RootNewMacros.cmake")
+    include("${ROOT_DIR}/modules/RootNewMacros.cmake")
+    message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/modules!")
+  elseif(EXISTS "${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")
+    include("${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")
+    message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/cmake/modules!")
+  elseif(EXISTS "${ROOT_DIR}/../cmake/modules/RootNewMacros.cmake")
+    include("${ROOT_DIR}/../cmake/modules/RootNewMacros.cmake")
+    message(STATUS "Found RootNewMacros.cmake in: ${ROOT_DIR}/../cmake/modules!")
+  else()
+    message("ERROR! Could not find RootNewMacros.cmake file! Aborting..")
+    return(1)
+  endif()
 endif()
 # fix missing include directories property in versions < ROOT 6.12
 set_target_properties(ROOT::Core PROPERTIES
@@ -198,9 +202,15 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libUnpacker2_rdict.pcm"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/thisunpacker.sh"
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
+
         configure_file("${PROJECT_BINARY_DIR}/Unpacker2Config.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Config.cmake" COPYONLY)
         configure_file("${PROJECT_BINARY_DIR}/Unpacker2ConfigVersion.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2ConfigVersion.cmake" COPYONLY)
-export(EXPORT Unpacker2 FILE Unpacker2Targets.cmake NAMESPACE Unpacker2::)
+
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/thisunpacker.sh" "${PROJECT_BINARY_DIR}/bin/thisunpacker.sh" COPYONLY)
+
+	export(EXPORT Unpacker2 FILE Unpacker2Targets.cmake NAMESPACE Unpacker2::)
 add_custom_target(
   copy_target
   COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_BINARY_DIR}/Unpacker2Targets.cmake" "${PROJECT_BINARY_DIR}/cmake/Unpacker2Targets.cmake"
