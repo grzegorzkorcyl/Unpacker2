@@ -19,12 +19,8 @@ public:
   Unpacker2();
   ~Unpacker2() {}
   void Init();
-  void UnpackSingleStep(
-    const std::string& inputFile, const std::string& inputPath,
-    const std::string& outputPath, const std::string& configFile,
-    int numberOfEvents, int refChannelOffset,
-    const std::string& TOTcalibFile, const std::string& TDCcalibFile
-  );
+  void UnpackSingleStep(const std::string& inputFile, const std::string& inputPath, const std::string& outputPath, const std::string& configFile,
+                        int numberOfEvents, int refChannelOffset, const std::string& TOTcalibFile, const std::string& TDCcalibFile);
 
   TH1F* loadCalibHisto(const char* calibFile);
   bool loadTDCcalibFile(const char* calibFile);
@@ -51,7 +47,6 @@ public:
 
   UInt_t* pHdr;
   UInt_t* subPHdr;
-
 
 protected:
   void ParseConfigFile();

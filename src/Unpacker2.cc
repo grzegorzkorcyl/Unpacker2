@@ -38,11 +38,9 @@ void Unpacker2::Init()
   fileSize = 0;
 }
 
-void Unpacker2::UnpackSingleStep(
-  const string& inputFile, const string& inputPath, const string& outputPath,
-  const string& configFile, int numberOfEvents, int refChannelOffset,
-  const string& totCalibFile, const string& tdcCalibFile
-) {
+void Unpacker2::UnpackSingleStep(const string& inputFile, const string& inputPath, const string& outputPath, const string& configFile,
+                                 int numberOfEvents, int refChannelOffset, const string& totCalibFile, const string& tdcCalibFile)
+{
 
   fInputFile = inputFile;
   fInputFilePath = inputPath;
