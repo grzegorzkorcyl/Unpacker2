@@ -305,9 +305,11 @@ void Unpacker2D::DistributeEventsSingleStep()
 
   if (file->is_open())
   {
-
     EventIII* eventIII = new EventIII();
-    string newFileName = fileName + ".root";
+
+    // open a new file
+    string newFileName = fOutputFilePath + fInputFile + ".root";
+
     TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
     TTree* newTree = new TTree("T", "Tree");
     newTree->Branch("eventIII", "EventIII", &eventIII, 64000, 99);
