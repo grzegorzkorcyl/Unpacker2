@@ -72,7 +72,13 @@ void Unpacker2D::BuildEvent(EventIII* e, std::map<UInt_t, std::vector<UInt_t>>* 
 
     if (useTDCcorrection)
     {
-      time = (coarse * kCoarseConstant) - ((TDCcorrections[ref_it->first]->GetBinContent(fine + 1)));
+      double correction = 0.0;
+      auto search = fTDCCorrections.find(ref_it->first);
+      if (search != fTDCCorrections.end())
+      {
+        correction = fTDCCorrections.at(ref_it->first)->GetBinContent(fine + 1);
+      }
+      time = (coarse * kCoarseConstant) - correction;
     }
     else
     {
@@ -98,7 +104,13 @@ void Unpacker2D::BuildEvent(EventIII* e, std::map<UInt_t, std::vector<UInt_t>>* 
 
       if (useTDCcorrection)
       {
-        time = coarse * kCoarseConstant - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)));
+        double correction = 0.0;
+        auto search = fTDCCorrections.find(m_it->first);
+        if (search != fTDCCorrections.end())
+        {
+          correction = fTDCCorrections.at(m_it->first)->GetBinContent(fine + 1);
+        }
+        time = (coarse * kCoarseConstant) - correction;
       }
       else
       {
@@ -239,25 +251,20 @@ void Unpacker2D::UnpackSingleStep(string inputFile, string inputPath, string out
   DistributeEventsSingleStep();
 }
 
-bool Unpacker2D::loadTDCcalibFile(const char* calibFile)
+bool Unpacker2D::loadTDCcalibFile(const char* calibFileName)
 {
-  TFile* f = new TFile(calibFile, "READ");
+  TFile* file = new TFile(calibFileName, "READ");
   TDirectory* dir = gDirectory->GetDirectory("Rint:/");
 
-  if (f->IsOpen())
+  if (file->IsOpen())
   {
-    TDCcorrections = new TH1F*[highest_channel_number];
     for (int i = kModularOffset; i < highest_channel_number; i++)
     {
-      TH1F* tmp = dynamic_cast<TH1F*>(f->Get(Form("correction%d", i)));
+      TH1F* tmp = dynamic_cast<TH1F*>(file->Get(Form("correction%d", i)));
       if (tmp)
       {
-        TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
-        TDCcorrections[i]->SetDirectory(dir);
-      }
-      else
-      {
-        TDCcorrections[i] = nullptr;
+        fTDCCorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
+        fTDCCorrections[i]->SetDirectory(dir);
       }
     }
 
@@ -270,15 +277,15 @@ bool Unpacker2D::loadTDCcalibFile(const char* calibFile)
   {
     if (debugMode)
     {
-      cerr << "The TDC calibration file " << calibFile << " could not be properly opened." << endl;
+      cerr << "The TDC calibration file " << calibFileName << " could not be properly opened." << endl;
       cerr << "TDC nonlinearity correction will not be used!" << endl;
     }
-    f->Close();
-    delete f;
+    file->Close();
+    delete file;
     return false;
   }
-  f->Close();
-  delete f;
+  file->Close();
+  delete file;
   return true;
 }
 
@@ -289,9 +296,11 @@ void Unpacker2D::DistributeEventsSingleStep()
 
   if (file->is_open())
   {
-
     EventIII* eventIII = new EventIII();
-    string newFileName = fileName + ".root";
+
+    // open a new file
+    string newFileName = fOutputFilePath + fInputFile + ".root";
+
     TFile* newFile = new TFile(newFileName.c_str(), "RECREATE");
     TTree* newTree = new TTree("T", "Tree");
     newTree->Branch("eventIII", "EventIII", &eventIII, 64000, 99);

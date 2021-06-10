@@ -70,7 +70,10 @@ protected:
   std::string fTDCCalibFile;
   std::map<UInt_t, UInt_t> tdc_offsets;
   int highest_channel_number = -1;
+
   TH1F** TDCcorrections = nullptr;
+  std::map<int, TH1F*> fTDCCorrections;
+
   bool useTDCcorrection = false;
   TH1F* TOTcalibHist = nullptr;
   int fRefChannelOffset;
