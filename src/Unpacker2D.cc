@@ -79,7 +79,6 @@ void Unpacker2D::BuildEvent(EventIII* e, std::map<UInt_t, std::vector<UInt_t>>* 
         correction = fTDCCorrections.at(ref_it->first)->GetBinContent(fine + 1);
       }
       time = (coarse * kCoarseConstant) - correction;
-      // time = (coarse * kCoarseConstant) - ((TDCcorrections[ref_it->first]->GetBinContent(fine + 1)));
     }
     else
     {
@@ -112,7 +111,6 @@ void Unpacker2D::BuildEvent(EventIII* e, std::map<UInt_t, std::vector<UInt_t>>* 
           correction = fTDCCorrections.at(m_it->first)->GetBinContent(fine + 1);
         }
         time = (coarse * kCoarseConstant) - correction;
-        // time = coarse * kCoarseConstant - ((TDCcorrections[m_it->first]->GetBinContent(fine + 1)));
       }
       else
       {
@@ -260,7 +258,6 @@ bool Unpacker2D::loadTDCcalibFile(const char* calibFileName)
 
   if (file->IsOpen())
   {
-    // TDCcorrections = new TH1F*[highest_channel_number];
     for (int i = kModularOffset; i < highest_channel_number; i++)
     {
       TH1F* tmp = dynamic_cast<TH1F*>(file->Get(Form("correction%d", i)));
@@ -268,13 +265,7 @@ bool Unpacker2D::loadTDCcalibFile(const char* calibFileName)
       {
         fTDCCorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
         fTDCCorrections[i]->SetDirectory(dir);
-        // TDCcorrections[i] = dynamic_cast<TH1F*>(tmp->Clone(tmp->GetName()));
-        // TDCcorrections[i]->SetDirectory(dir);
       }
-      // else
-      // {
-      //   TDCcorrections[i] = nullptr;
-      // }
     }
 
     if (debugMode)
